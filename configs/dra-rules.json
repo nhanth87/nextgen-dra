@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "self": {
+    "originHost": "dra1.elisa.lab",
+    "realms": ["epc.mnc01.mcc452.3gppnetwork.org"]
+  },
+  "peerGroups": {
+    "mvno-hss-pool": {
+      "lb": "WEIGHTED_RR",
+      "peers": [
+        { "id": "hss-a", "weight": 70 },
+        { "id": "hss-b", "weight": 30 }
+      ],
+      "failover": { "enabled": true, "maxRetries": 1 }
+    },
+    "pcrf-pool": {
+      "lb": "RR",
+      "peers": [
+        { "id": "pcrf-a", "weight": 1 }
+      ],
+      "failover": { "enabled": false, "maxRetries": 0 }
+    }
+  },
+  "rules": [
+    {
+      "name": "s6a-mvno-hss",
+      "priority": 100,
+      "when": {
+        "and": [
+          { "app": 16777251 },
+          { "avp": { "path": "IMSI", "op": "PREFIX", "value": "4520402" } }
+        ]
+      },
+      "then": {
+        "forward": {
+          "group": "mvno-hss-pool",
+          "sticky": { "key": "IMSI", "ttlSecs": 86400 }
+        }
+      }
+    },
+    {
+      "name": "roaming-out-vplmn-edge",
+      "priority": 200,
+      "when": {
+        "and": [
+          { "app": 16777251 },
+          { "plmnFrom": "IMSI", "notIn": ["45201", "45204"] }
+        ]
+      },
+      "then": {
+        "forward": {
+          "group": "ipx-edge",
+          "th": "PSEUDO_HOST_DETERMINISTIC"
+        }
+      }
+    },
+    {
+      "name": "gx-pcrf-binding",
+      "priority": 300,
+      "when": { "and": [ { "app": 16777238 } ] },
+      "then": {
+        "forward": {
+          "group": "pcrf-pool",
+          "sticky": { "key": "FRAMED_IP_APN", "ttlSecs": 43200 }
+        }
+      }
+    },
+    {
+      "name": "default-drop-unknown",
+      "priority": 65000,
+      "when": { "always": true },
+      "then": { "reject": { "resultCode": 3002, "reason": "no-route" } }
+    }
+  ]
+}

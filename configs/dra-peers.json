@@ -1,0 +1,16 @@
+{
+  "peers": [
+    { "id": "hss-a", "host": "10.0.0.11", "port": 3868, "role": "SERVER", "transport": "TCP",
+      "advertisedApps": [16777251], "group": "mvno-hss-pool", "weight": 70, "maxOutstanding": 2000 },
+    { "id": "hss-b", "host": "10.0.0.12", "port": 3868, "role": "SERVER", "transport": "TCP",
+      "advertisedApps": [16777251], "group": "mvno-hss-pool", "weight": 30, "maxOutstanding": 2000 },
+    { "id": "pcrf-a", "host": "10.0.1.21", "port": 3868, "role": "SERVER", "transport": "TCP",
+      "advertisedApps": [16777238], "group": "pcrf-pool", "weight": 1, "maxOutstanding": 1000 },
+    { "id": "mme-01", "host": "10.0.2.31", "port": 3868, "role": "CLIENT", "transport": "TCP",
+      "advertisedApps": [16777251], "group": "mme-access", "weight": 1, "maxOutstanding": 4000 }
+  ],
+  "originHost": "dra1.elisa.lab",
+  "realms": ["epc.mnc01.mcc452.3gppnetwork.org"],
+  "watchdogIntervalMillis": 30000,
+  "twTimeoutMillis": 5000
+}

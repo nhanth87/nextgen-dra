@@ -1,0 +1,12 @@
+# Lab subscriber seeds — one flat JSON object per line (JSONL), '#'/'//' comments allowed.
+# Keys: imsi (required), msisdn, attached, barred, authVectorsAvailable, subscribedRat.
+# (a) normal attached subscriber on the routed prefix 4520402
+{"imsi":"4520402000000001","msisdn":"+2519110000001","attached":true,"barred":false,"authVectorsAvailable":1,"subscribedRat":"EUTRAN"}
+# (b) operator-determined barring -> ULA 2001 with OPERATOR_DETERMINED_BARRING through DRA TH
+{"imsi":"4520402000000002","msisdn":"+2519110000002","attached":true,"barred":true,"authVectorsAvailable":1}
+# (c) detached UE -> ULA/AIA 5421
+{"imsi":"4520402000000003","msisdn":"+2519110000003","attached":false,"authVectorsAvailable":1}
+# (d) zero auth vectors -> AIA/MAA success with empty vector set (fail-closed)
+{"imsi":"4520402000000004","msisdn":"+2519110000004","attached":true,"authVectorsAvailable":0}
+# (e) off-prefix IMSI (452040999...) -> DRA default-drop rule answers 3002 before this app
+{"imsi":"4520409990000001","msisdn":"+2519110000005","attached":true,"authVectorsAvailable":1}

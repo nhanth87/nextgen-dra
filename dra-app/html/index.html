@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Elisa Nextgen DRA — Admin</title>
+<script src="https://unpkg.com/htmx.org@2.0.4"></script>
+<style>
+  :root { --bg:#0e1116; --card:#161b22; --line:#232a33; --fg:#dbe2ea; --dim:#8b98a5;
+          --ok:#3fb950; --bad:#f85149; --warn:#d29922; --accent:#58a6ff; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:24px; font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+         background:var(--bg); color:var(--fg); }
+  h1 { font-size:20px; margin:0 0 4px; }
+  h1 span { color:var(--accent); }
+  .sub { color:var(--dim); margin:0 0 20px; }
+  .grid { display:grid; grid-template-columns:1fr 320px; gap:16px; align-items:start; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:14px 16px; margin-bottom:16px; }
+  .card h2 { font-size:13px; text-transform:uppercase; letter-spacing:.08em;
+             color:var(--dim); margin:0 0 10px; }
+  table { width:100%; border-collapse:collapse; }
+  th,td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); }
+  th { color:var(--dim); font-weight:600; }
+  tr:last-child td { border-bottom:none; }
+  .pill { display:inline-block; padding:1px 9px; border-radius:99px; font-size:12px; font-weight:600; }
+  .ready { background:rgba(63,185,80,.15); color:var(--ok); }
+  .down  { background:rgba(248,81,73,.15); color:var(--bad); }
+  .off   { background:rgba(210,153,34,.15); color:var(--warn); }
+  button { background:#21262d; color:var(--fg); border:1px solid var(--line);
+           border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; }
+  button:hover { border-color:var(--accent); }
+  textarea { width:100%; min-height:220px; background:#0b0e13; color:var(--fg);
+             border:1px solid var(--line); border-radius:8px; padding:10px;
+             font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; resize:vertical; }
+  #rules-result { white-space:pre-wrap; font:12px ui-monospace,Menlo,monospace; margin-top:10px; }
+  .kv { display:flex; justify-content:space-between; padding:3px 0; }
+  .kv b { font-variant-numeric:tabular-nums; }
+  .muted { color:var(--dim); }
+</style>
+</head>
+<body>
+<h1>Elisa <span>Nextgen DRA</span> — Admin Console</h1>
+<p class="sub">Peer truth = channel up + CEA 2001 + watchdog valid. No LISTEN badges. Fail-closed 3002.</p>
+
+<div class="grid">
+  <div>
+    <div class="card">
+      <h2>Peers (auto-refresh 5s)</h2>
+      <table id="peers-table">
+        <thead><tr><th>Peer</th><th>State</th><th>Ready</th><th>Outstanding</th><th>Apps</th><th>Ops</th></tr></thead>
+        <tbody id="peer-rows"><tr><td colspan="6" class="muted">loading…</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Rules — apply candidate (PUT /api/rules)</h2>
+      <textarea id="rules-json" spellcheck="false" placeholder='{"version":N,"self":{...},"peerGroups":{...},"rules":[...]}'></textarea>
+      <div style="margin-top:10px;display:flex;gap:8px;">
+        <button hx-put="/api/rules" hx-target="#rules-result" hx-swap="innerHTML"
+                hx-include="#rules-json" hx-ext="json-enc"
+                onclick="this.dataset.body=document.getElementById('rules-json').value"
+                hx-vals="js:{body: document.getElementById('rules-json').value}">
+          Apply rules
+        </button>
+        <button onclick="loadRules()">Load current</button>
+      </div>
+      <div id="rules-result"></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card" hx-get="/api/bindings/count" hx-trigger="every 3s" hx-swap="innerHTML"
+         hx-target="#binding-count">
+      <h2>Bindings</h2>
+      <div class="kv"><span class="muted">count</span><b id="binding-count">–</b></div>
+    </div>
+    <div class="card">
+      <h2>Telemetry</h2>
+      <div id="telemetry" class="muted">loading…</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function pill(ok, okText, badText) {
+  return '<span class="pill ' + (ok ? 'ready' : 'down') + '">' + (ok ? okText : badText) + '</span>';
+}
+async function refreshPeers() {
+  try {
+    const r = await fetch('/api/peers');
+    const data = await r.json();
+    const rows = document.getElementById('peer-rows');
+    const ids = Object.keys(data.peers || {});
+    if (!ids.length) {
+      rows.innerHTML = '<tr><td colspan="6" class="muted">' +
+        (data.live ? 'no peers registered' : 'RA not attached (noop admin port)') + '</td></tr>';
+      return;
+    }
+    rows.innerHTML = ids.map(function(id) {
+      const p = data.peers[id];
+      const ready = p.channelUp && p.ceaOk && p.watchdogValid;
+      return '<tr>' +
+        '<td>' + id + '</td>' +
+        '<td>' + (p.state || '?') + '</td>' +
+        '<td>' + pill(ready, 'READY', 'NOT READY') + '</td>' +
+        '<td>' + p.outstanding + '</td>' +
+        '<td class="muted">' + Object.keys(p.advertisedApps || {}).length + '</td>' +
+        '<td><button onclick="peerOp(\'' + id + '\',\'disable\')">disable</button> ' +
+            '<button onclick="peerOp(\'' + id + '\',\'enable\')">enable</button></td>' +
+        '</tr>';
+    }).join('');
+  } catch (e) {
+    document.getElementById('peer-rows').innerHTML =
+      '<tr><td colspan="6" class="muted">fetch failed</td></tr>';
+  }
+}
+async function peerOp(id, op) {
+  await fetch('/api/peers/' + encodeURIComponent(id) + '/' + op, { method: 'POST' });
+  refreshPeers();
+}
+async function loadRules() {
+  const r = await fetch('/api/rules');
+  document.getElementById('rules-json').value = await r.text();
+}
+async function refreshTelemetry() {
+  try {
+    const r = await fetch('/api/telemetry');
+    const d = await r.json();
+    const el = document.getElementById('telemetry');
+    const keys = Object.keys(d.counters || {});
+    el.innerHTML = keys.length
+      ? keys.map(function(k) {
+          return '<div class="kv"><span class="muted">' + k + '</span><b>' +
+                 d.counters[k] + '</b></div>';
+        }).join('')
+      : '<span class="muted">' + (d.live ? 'no counters' : 'telemetry port not attached') + '</span>';
+  } catch (e) {}
+}
+document.addEventListener('htmx:configRequest', function(evt) {
+  if (evt.detail.verb === 'put' && evt.detail.path === '/api/rules') {
+    evt.detail.parameters = {};
+    evt.detail.headers['Content-Type'] = 'application/json';
+  }
+});
+document.addEventListener('htmx:beforeRequest', function(evt) {
+  if (evt.detail.requestConfig.verb === 'put') {
+    evt.detail.requestConfig.body = document.getElementById('rules-json').value;
+  }
+});
+refreshPeers(); setInterval(refreshPeers, 5000);
+refreshTelemetry(); setInterval(refreshTelemetry, 3000);
+</script>
+</body>
+</html>
