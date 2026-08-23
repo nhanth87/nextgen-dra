@@ -5,11 +5,18 @@ import java.util.Optional;
 import java.util.Set;
 
 public record DiameterRaConfig(List<PeerConfig> peers, String originHost, Set<String> realms,
-                               long watchdogIntervalMillis, long twTimeoutMillis) {
+                               long watchdogIntervalMillis, long twTimeoutMillis,
+                               List<String> commandPackages) {
 
     public static final String LEGACY_LINK_ID = "diameter-ra";
     public static final long DEFAULT_WATCHDOG_MILLIS = 30_000L;
     public static final long DEFAULT_TW_MILLIS = 5_000L;
+    public static final String COMMAND_PACKAGE_ROOT =
+            "com.mobius.software.telco.protocols.diameter.impl.commands.";
+    public static final List<String> DEFAULT_COMMAND_PACKAGES = List.of(
+            "common", "s6a", "cxdx", "gx", "gxx", "gy", "rx", "sy", "s13",
+            "s6b", "s6c", "sh", "nas", "sta", "swm", "ro", "rf",
+            "creditcontrol", "eap", "t6a", "slg", "slh");
 
     public DiameterRaConfig {
         peers = peers == null ? List.of() : List.copyOf(peers);
@@ -19,6 +26,13 @@ public record DiameterRaConfig(List<PeerConfig> peers, String originHost, Set<St
         realms = realms == null ? Set.of() : Set.copyOf(realms);
         watchdogIntervalMillis = watchdogIntervalMillis < 0 ? DEFAULT_WATCHDOG_MILLIS : watchdogIntervalMillis;
         twTimeoutMillis = twTimeoutMillis <= 0 ? DEFAULT_TW_MILLIS : twTimeoutMillis;
+        commandPackages = commandPackages == null || commandPackages.isEmpty()
+                ? DEFAULT_COMMAND_PACKAGES : List.copyOf(commandPackages);
+    }
+
+    public DiameterRaConfig(List<PeerConfig> peers, String originHost, Set<String> realms,
+                            long watchdogIntervalMillis, long twTimeoutMillis) {
+        this(peers, originHost, realms, watchdogIntervalMillis, twTimeoutMillis, null);
     }
 
     public Optional<PeerConfig> peer(String id) {
@@ -31,7 +45,7 @@ public record DiameterRaConfig(List<PeerConfig> peers, String originHost, Set<St
 
     public DiameterRaConfig withPeers(List<PeerConfig> replacement) {
         return new DiameterRaConfig(replacement, originHost, realms,
-                watchdogIntervalMillis, twTimeoutMillis);
+                watchdogIntervalMillis, twTimeoutMillis, commandPackages);
     }
 
     public static DiameterRaConfig singlePeer(String host, int port, String realm,

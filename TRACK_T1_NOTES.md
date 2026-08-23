@@ -1,7 +1,42 @@
 # TRACK_T1_NOTES — Multi-peer Diameter RA (`dra-ra`)
 
-Trạng thái: `mvn -q -pl dra-ra -am test` XANH (dra-ra 39 tests, dra-core 30 tests).
+Trạng thái: `mvn -q -pl dra-ra -am test` XANH (dra-ra 40 tests, gồm NNConnectionIntegrationTest socket thật).
 JDK: mise `zulu-25`. Không git commit (theo law).
+
+## 0. N-N connection proof (2026-08-23) — REAL-SOCKET INTEGRATION
+
+`NNConnectionIntegrationTest`: 2 MME-ingress (chung 1 listen port) × 2 HSS-egress,
+CER/CEA + ULR/ULA relay full round-trip qua TCP thật (raw peer helper
+`RawDiameterEndpoint`). Fix để N-N chạy được:
+
+1. **PeerConfig tách listen-port khỏi remote-port**: field `listenPort` (nullable)
+   — SERVER peer: listen trên `effectiveListenPort()`, association khớp
+   remote host:port = `port`. Cho phép N client vào chung 1 cổng ingress
+   (corsac tự reuse acceptor cùng host/port/channelType).
+2. **PeerConfig thêm remote identity**: `remoteIdentityHost/Realm` (JSON:
+   `remoteHost`/`remoteRealm`) — corsac kiểm CER Origin-Host/Realm khớp
+   link destination* (`MessageProcessingTask` "invalid remote hostname/realm"),
+   sai ⇒ 3010. Fallback: id / primaryRealm.
+3. **destinationHost=null làm corsac NPE** (`hostsMap.get(null)`) — luôn truyền
+   non-null.
+4. **Parser per-link**: mỗi `DiameterLinkImpl` có `DiameterParser` RIÊNG — đăng ký
+   command packages vào global parser KHÔNG có tác dụng ingress decode. Fabric
+   reflect vào field `parser` của từng link và register
+   `DiameterRaConfig.commandPackages` (mặc định common+s6a+cxdx+gx+…22 gói,
+   cấu hình được qua JSON). CẦN FORK CORSAC: thêm accessor `getLinkParser()`.
+5. **rejectMandatoryAvps=false**: relay phải passthrough AVP ngoài dictionary;
+   overload `addLink(..., FALSE, FALSE)` — nếu không ULA mang AVP lạ bị ném
+   DIAMETER_AVP_UNSUPPORTED.
+6. **registerApplication per-link**: cần cho capability matching lúc CER (không thì
+   CEA 5010 NO_COMMON_APPLICATION). Dùng stub package `linkreg.LinkRegMarker` làm
+   provider/package để tránh re-scan trùng lệnh (parser không idempotent — scan
+   lại package đã register ⇒ throw "already registered").
+7. **NetworkListener đăng ký 1 LẦN toàn cục** (`"dra-ra-ingress"`):
+   `genericListeners` là map CHUNG mọi link — addNetworkListener per-peer ⇒ mỗi
+   message fire N lần (số entry trong map).
+
+Gap corsac fork còn mở (ghi nhận): `sessionID null` khi answer thiếu Session-Id
+⇒ NPE `WorkerPool.addTaskLast`; nên fallback `sessionID=linkId`.
 
 ## 1. Kiến trúc adapter
 

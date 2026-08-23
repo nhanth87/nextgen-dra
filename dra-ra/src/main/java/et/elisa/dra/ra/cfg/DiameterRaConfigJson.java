@@ -66,6 +66,15 @@ public final class DiameterRaConfigJson {
             n.put("id", p.id());
             n.put("host", p.host());
             n.put("port", p.port());
+            if (p.listenPort() != null) {
+                n.put("listenPort", p.listenPort());
+            }
+            if (p.remoteIdentityHost() != null) {
+                n.put("remoteHost", p.remoteIdentityHost());
+            }
+            if (p.remoteIdentityRealm() != null) {
+                n.put("remoteRealm", p.remoteIdentityRealm());
+            }
             n.put("role", p.role());
             n.put("transport", p.transport());
             ArrayNode apps = n.putArray("advertisedApps");
@@ -93,6 +102,10 @@ public final class DiameterRaConfigJson {
         String id = requiredText(node, "id");
         String host = requiredText(node, "host");
         int port = node.path("port").asInt(3868);
+        Integer listenPort = node.hasNonNull("listenPort")
+                && node.get("listenPort").isInt() ? node.get("listenPort").asInt() : null;
+        String remoteHost = text(node.get("remoteHost"), null);
+        String remoteRealm = text(node.get("remoteRealm"), null);
         Set<Integer> apps = new HashSet<>();
         JsonNode appsNode = node.get("advertisedApps");
         if (appsNode != null && appsNode.isArray()) {
@@ -104,6 +117,9 @@ public final class DiameterRaConfigJson {
                 id,
                 host,
                 port,
+                listenPort,
+                remoteHost,
+                remoteRealm,
                 text(node.get("role"), PeerConfig.ROLE_SERVER),
                 text(node.get("transport"), PeerConfig.TRANSPORT_TCP),
                 apps,
