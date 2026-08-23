@@ -18,6 +18,11 @@
       <groupId>et.elisa</groupId>
       <artifactId>dra-core</artifactId>
     </dependency>
+    <dependency>
+      <groupId>et.elisa</groupId>
+      <artifactId>dra-ra</artifactId>
+      <version>${project.version}</version>
+    </dependency>
 
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-arc</artifactId></dependency>
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-rest</artifactId></dependency>

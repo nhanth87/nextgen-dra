@@ -24,7 +24,7 @@ public record DiaMsg(int version, int flags, int commandCode, int applicationId,
     }
 
     public DiaMsg asAnswer(int code) {
-        return new DiaMsg(version, flags & ~FLAG_REQUEST, commandCode,
+        return new DiaMsg(version, flags & ~(FLAG_REQUEST | FLAG_RETRANSMIT), commandCode,
                 applicationId, hopByHopId, endToEndId, sessionId, originHost,
                 originRealm, destinationHost, destinationRealm, code, avps);
     }

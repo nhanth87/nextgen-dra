@@ -6,7 +6,7 @@ import et.elisa.dra.core.wire.DiaMsg;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
-final class PassScreen implements Screener {
+public final class PassScreen implements Screener {
 
     final AtomicReference<Integer> blockCode = new AtomicReference<>(null);
 

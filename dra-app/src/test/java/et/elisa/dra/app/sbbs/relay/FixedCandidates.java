@@ -6,9 +6,9 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-final class FixedCandidates implements CandidateSource {
+public final class FixedCandidates implements CandidateSource {
 
-    final Map<String, List<String>> byGroup = new ConcurrentHashMap<>();
+    public final Map<String, List<String>> byGroup = new ConcurrentHashMap<>();
     final List<String> askedGroups = new CopyOnWriteArrayList<>();
 
     @Override

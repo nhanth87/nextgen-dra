@@ -10,7 +10,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-final class FakeRaPort implements DraRaPort {
+public final class FakeRaPort implements DraRaPort {
 
     record Sent(String peerId, DiaMsg msg) {
     }

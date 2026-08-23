@@ -12,18 +12,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
-final class FakeEngine implements RuleEngine {
+public final class FakeEngine implements RuleEngine {
 
     final AtomicReference<RouteDecision> decision = new AtomicReference<>();
     private final String selfOriginHost;
 
-    FakeEngine(String selfOriginHost) {
+    public FakeEngine(String selfOriginHost) {
         this.selfOriginHost = selfOriginHost;
         this.decision.set(new RouteDecision.Forward("mvno-hss-pool", null, true, ThMode.OFF,
                 List.of(new AvpOp.AppendRouteRecord(selfOriginHost)), "hss-a"));
     }
 
-    void forwardTo(String group, String peerId) {
+    public void forwardTo(String group, String peerId) {
         decision.set(new RouteDecision.Forward(group, null, true, ThMode.OFF,
                 List.of(new AvpOp.AppendRouteRecord(selfOriginHost)), peerId));
     }

@@ -51,26 +51,28 @@ public final class RelayCore {
     private final TopologyHider topologyHider;
     private final CandidateSource candidates;
     private final String selfOriginHost;
+    private final String selfOriginRealm;
     private final RelaySupport support;
     private final LongSupplier clock;
+    private volatile com.microjainslee.api.RaCommandPort commandPort;
     private final ConcurrentHashMap<Long, PendingForward> pending = new ConcurrentHashMap<>();
     private final SbbMetrics metrics = new SbbMetrics();
 
     public RelayCore(RuleEngine engine, TxTable txTable, HbhAllocator hbhAllocator,
                      DraRaPort raPort, BindingStore bindings, ServerInitiatedResolver resolver,
                      OverloadGate overload, Screener screener, TopologyHider topologyHider,
-                     CandidateSource candidates, String selfOriginHost, long twMillis,
-                     int maxRetries) {
+                     CandidateSource candidates, String selfOriginHost, String selfOriginRealm,
+                     long twMillis, int maxRetries) {
         this(engine, txTable, hbhAllocator, raPort, bindings, resolver, overload, screener,
-                topologyHider, candidates, selfOriginHost,
+                topologyHider, candidates, selfOriginHost, selfOriginRealm,
                 new RelaySupport(twMillis, maxRetries), System::currentTimeMillis);
     }
 
-    RelayCore(RuleEngine engine, TxTable txTable, HbhAllocator hbhAllocator,
-              DraRaPort raPort, BindingStore bindings, ServerInitiatedResolver resolver,
-              OverloadGate overload, Screener screener, TopologyHider topologyHider,
-              CandidateSource candidates, String selfOriginHost, RelaySupport support,
-              LongSupplier clock) {
+    public RelayCore(RuleEngine engine, TxTable txTable, HbhAllocator hbhAllocator,
+                     DraRaPort raPort, BindingStore bindings, ServerInitiatedResolver resolver,
+                     OverloadGate overload, Screener screener, TopologyHider topologyHider,
+                     CandidateSource candidates, String selfOriginHost, String selfOriginRealm,
+                     RelaySupport support, LongSupplier clock) {
         this.engine = engine;
         this.txTable = txTable;
         this.hbhAllocator = hbhAllocator;
@@ -82,12 +84,28 @@ public final class RelayCore {
         this.topologyHider = topologyHider;
         this.candidates = candidates;
         this.selfOriginHost = selfOriginHost;
+        this.selfOriginRealm = selfOriginRealm == null || selfOriginRealm.isBlank()
+                ? "" : selfOriginRealm;
         this.support = support;
         this.clock = clock;
     }
 
     public SbbMetrics metrics() {
         return metrics;
+    }
+
+    /** Bound by the SBB when the container injects the RA command port. */
+    public void bindCommandPort(com.microjainslee.api.RaCommandPort port) {
+        this.commandPort = port;
+    }
+
+    public com.microjainslee.api.RaCommandPort commandPort() {
+        return commandPort;
+    }
+
+    /** Live transaction count (leak-guard gauge). */
+    public int txActive() {
+        return txTable.activeCount();
     }
 
     public long nowMillis() {
@@ -228,7 +246,8 @@ public final class RelayCore {
 
     private void redirectAnswer(RouteDecision.Redirect r, String ingressPeerId, DiaMsg req) {
         metrics.inc(SbbMetrics.REDIRECT_TOTAL);
-        DiaMsg ans = req.asAnswer(DraResultCodes.REDIRECT_INDICATION);
+        DiaMsg ans = req.asAnswer(DraResultCodes.REDIRECT_INDICATION)
+                .withOrigin(selfOriginHost, selfOriginRealm);
         ans = AvpOps.append(ans, DiaAvp.utf8(AvpCodes.REDIRECT_HOST, r.host()));
         ans = AvpOps.append(ans, DiaAvp.uint32(AvpCodes.REDIRECT_MAX_CACHE_TIME, r.cacheSeconds()));
         countAnswerClass(DraResultCodes.REDIRECT_INDICATION);
@@ -326,7 +345,11 @@ public final class RelayCore {
 
     private void answerIngress(String ingressPeerId, DiaMsg request, int resultCode) {
         countAnswerClass(resultCode);
-        raPort.sendAnswerOnLink(ingressPeerId, request.asAnswer(resultCode));
+        DiaMsg ans = request.asAnswer(resultCode);
+        if (!isBlank(selfOriginHost)) {
+            ans = ans.withOrigin(selfOriginHost, selfOriginRealm);
+        }
+        raPort.sendAnswerOnLink(ingressPeerId, ans);
     }
 
     private void countAnswerClass(int resultCode) {

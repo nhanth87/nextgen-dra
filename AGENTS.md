@@ -36,3 +36,10 @@ Không route vào peer chưa ready; fail-closed `DIAMETER_UNABLE_TO_DELIVER`
 ## Prove the artifact
 Green test chưa đóng bài. Deploy thật phải: package dist → rsync runtime →
 restart → chứng minh live (dashboard READY + ULR live + jar mtime/PID).
+
+## Resource hygiene (workplace-wide rule, 2026-08-23)
+
+- When done (tests/smoke/dev): stop everything you started — `docker compose down` (keep volumes), kill dev servers/JVMs you spawned. Never leave them running "for later"; RAM is shared across ALL worktrees on this machine.
+- Before ending a session verify: `docker ps` shows nothing from this tree; no stray `java`/`node` processes left (`ps -eo pid,rss,args --sort=-rss | head`).
+- Long-lived services (EPC / FreeSWITCH / PG / app servers) run only while their session needs them. If the owner asks to keep one up, note which and why in the session handoff.
+- DB/app port binds use loopback (`127.0.0.1:`) unless explicitly public; never expose default credentials beyond lab.

@@ -7,7 +7,7 @@ import et.elisa.dra.core.wire.DiaMsg;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-final class FakeTh implements TopologyHider {
+public final class FakeTh implements TopologyHider {
 
     static final int MARKER_OUT = 9000;
     static final int MARKER_IN = 9001;

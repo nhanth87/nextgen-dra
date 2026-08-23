@@ -25,10 +25,10 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class RelayCoreTest {
+public class RelayCoreTest {
 
-    static final String SELF = "dra-01.epc.mnc01.mcc452.3gppnetwork.org";
-    static final String REALM = "epc.mnc01.mcc452.3gppnetwork.org";
+    public static final String SELF = "dra-01.epc.mnc01.mcc452.3gppnetwork.org";
+    public static final String REALM = "epc.mnc01.mcc452.3gppnetwork.org";
     static final String MME_LINK = "mme-01";
 
     static final class Stack {
@@ -47,7 +47,7 @@ class RelayCoreTest {
 
         RelayCore core() {
             return new RelayCore(engine, table, new HbhAllocator(), ra, bindings,
-                    ctx -> siTarget.get(), gate, screen, th, candidates, SELF,
+                    ctx -> siTarget.get(), gate, screen, th, candidates, SELF, REALM,
                     new RelaySupport(1_000, 1), now::get);
         }
     }

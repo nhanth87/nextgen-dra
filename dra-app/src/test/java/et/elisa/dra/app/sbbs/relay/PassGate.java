@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
-final class PassGate implements OverloadGate {
+public final class PassGate implements OverloadGate {
 
     final AtomicReference<Boolean> admitAll = new AtomicReference<>(true);
     final List<String> answeredFrom = new CopyOnWriteArrayList<>();

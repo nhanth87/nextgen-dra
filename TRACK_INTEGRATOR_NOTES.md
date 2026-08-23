@@ -29,6 +29,29 @@ lb contracts, engine contracts, metrics/, common seams truoc/sau merge - khong d
 
 ## Cac quyet dinh hoi tu cross-track
 
+0. **Strict micro-jainslee pass (2026-08-23 lan 2)**:
+   - `app.bootstrap.DraBootstrap` + `DraBootstrapBean` (CDI StartupEvent): container
+     start → registerSbbType($Concrete) → createIesDispatcher → mapEventToSbb
+     (Request+Answer → DraRelaySbb) → registerRa(DraRaEndpoint) → tx-sweeper 250ms.
+   - `DraRaEndpoint implements RaEndpointPort+RaCommandPort`: fabric ingress →
+     RaBootstrapPort.fireEvent với activity key `dra-sess/<sessionId>`
+     (fallback `dra-hbh/<hbh>`); outbound qua DraSendCommand.
+   - `DraRelaySbb` viết lại đúng convention: extends `CmpBackedSbb`,
+     `@SbbAnnotation(et.elisa)`, CMP `sessionId`, `@InjectRa("dra-diameter-ra")`,
+     lifecycle sbbCreate/sbbPostCreate/sbbActivate bindCommandPort, `$Concrete`.
+   - XOÁ DraBindingSbb/DraOverloadSbb/RaEventBridge (trước đây 3 SBB cùng gọi
+     core.onRequest ⇒ xử lý 3 lần); sweep chạy bằng scheduler của bootstrap.
+   - Proof: `DraBootstrapContainerTest` — hermetic MicroSleeContainer thật,
+     SimulatedPeerFabric, ULR vào qua fireEvent → SBB → forward → ULA correlate
+     về đúng link, txActive về 0, commandPort được inject. 278 tests xanh.
+   - Protocol fix: answer do DRA sinh (3002/3004/reject/redirect) giờ mang
+     Origin-Host/Realm CỦA DRA (`withOrigin`) — RFC 6733 §6.2; `asAnswer` clear
+     cả T-bit.
+1. **corsac fork patch (worktrees/diameter/corsac-diameter, KHÔNG commit ở đó —
+   owner commit)**: `DiameterLinkImpl.onPayload` fallback `sessionID=linkId`
+   khi answer thiếu Session-Id (trước đây NPE WorkerPool). Đã `mvn install`
+   diameter-impl 10.0.0-41-SNAPSHOT (jar mtime 23:19 23/8).
+
 1. Redirect = 3006 REDIRECT_INDICATION, Loop = 3005 LOOP_DETECTED (RFC 6733 dung chu;
    design doc 01/03 ghi 3005 cho redirect la sai - da sua trong code).
 2. Sticky binding store key format "<KEY>:<value>" (vi du IMSI:4520402xxxx).
