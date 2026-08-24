@@ -1,15 +1,21 @@
-quarkus.datasource.db-kind=postgresql
-quarkus.datasource.username=dra
-quarkus.datasource.password=CHANGE_ME
-quarkus.datasource.jdbc.url=jdbc:postgresql://localhost:5432/dra
+# Nextgen DRA — operator configuration template
+# Copy to application.properties next to run.sh (or export env vars) and fill in.
+
+# ── Database (bring your own) ─────────────────────────────────────────────
+# Demo default (no env needed): embedded H2 file under ./data/
+#   DRA_DB_KIND=h2  DRA_DB_URL=jdbc:h2:file:./data/dra;DB_CLOSE_DELAY=-1  DRA_DB_USER=sa
+#
+# Production example (PostgreSQL you own):
+#   export DRA_DB_KIND=postgresql
+#   export DRA_DB_URL=jdbc:postgresql://db-host:5432/dra
+#   export DRA_DB_USER=dra
+#   export DRA_DB_PASSWORD=<secret>
+quarkus.datasource.db-kind=${DRA_DB_KIND:h2}
+quarkus.datasource.username=${DRA_DB_USER:sa}
+quarkus.datasource.password=${DRA_DB_PASSWORD:}
+quarkus.datasource.jdbc.url=${DRA_DB_URL:jdbc:h2:file:./data/dra;DB_CLOSE_DELAY=-1}
 
 %prod.quarkus.flyway.migrate-at-start=true
-%test.quarkus.datasource.db-kind=h2
-%test.quarkus.datasource.username=sa
-%test.quarkus.datasource.password=
-%test.quarkus.datasource.jdbc.url=jdbc:h2:mem:dratest;DB_CLOSE_DELAY=-1
-%test.quarkus.hibernate-orm.database.generation=drop-and-create
-%test.quarkus.flyway.migrate-at-start=false
 
 dra.bindings.ttl-default-seconds=86400
 dra.bindings.sweep-every-seconds=60
