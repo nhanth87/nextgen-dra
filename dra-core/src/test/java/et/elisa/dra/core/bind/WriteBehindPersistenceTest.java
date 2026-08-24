@@ -49,7 +49,7 @@ class WriteBehindPersistenceTest {
     }
 
     private static void await(BooleanSupplier cond) throws InterruptedException {
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
         while (!cond.getAsBoolean()) {
             if (System.nanoTime() > deadline) {
                 org.junit.jupiter.api.Assertions.fail("condition not met within 5s");

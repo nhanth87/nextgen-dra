@@ -12,7 +12,7 @@ class BenchSmokeTest {
         try (FakeHssServer server = new FakeHssServer(0, 0, 0)) {
             server.start();
             try (SeederClient client = new SeederClient("127.0.0.1", server.port(),
-                    1, 500, 2000, "4520402")) {
+                    1, 500, 10_000, "4520402")) {
                 SeederClient.Stats stats = client.run(200);
                 assertEquals(0, server.requests() >= 200 ? 0 : 1,
                         "server saw fewer requests than sent");

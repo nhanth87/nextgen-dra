@@ -3,6 +3,8 @@ package et.elisa.dra.app.bootstrap;
 import com.microjainslee.core.MicroSleeContainer;
 
 import et.elisa.dra.app.ra.DraRaEndpoint;
+import et.elisa.dra.app.admin.AdminPort;
+import et.elisa.dra.core.peer.PeerHealth;
 import et.elisa.dra.app.sbbs.relay.CandidateSource;
 import et.elisa.dra.app.sbbs.relay.RelayCore;
 import et.elisa.dra.core.bind.InMemoryBindingStore;
@@ -48,7 +50,7 @@ import java.util.List;
  * relay plane on StartupEvent and tears it down on shutdown.
  */
 @ApplicationScoped
-public final class DraBootstrapBean {
+public class DraBootstrapBean implements AdminPort {
 
     private static final Logger LOG = LogManager.getLogger(DraBootstrapBean.class);
 
@@ -63,6 +65,9 @@ public final class DraBootstrapBean {
 
     private volatile DraBootstrap bootstrap;
     private volatile DraRaPort raPort;
+
+    public DraBootstrapBean() {
+    }
 
     void onStart(@Observes StartupEvent ev) {
         LOG.info("DRA bootstrap triggered by StartupEvent");
@@ -183,5 +188,34 @@ public final class DraBootstrapBean {
     public DraRaEndpoint endpoint() {
         DraBootstrap b = bootstrap;
         return b == null ? null : b.endpoint();
+    }
+
+    // ── AdminPort: REST reads real fabric truth, not a NOOP ──
+
+    @Override
+    public boolean live() {
+        return bootstrap != null && endpoint() != null && endpoint().isStarted();
+    }
+
+    @Override
+    public java.util.Map<String, PeerHealth> peersHealth() {
+        DraRaPort port = raPort;
+        return port == null ? java.util.Map.of() : port.peersHealth();
+    }
+
+    @Override
+    public long bindingsCount() {
+        DraBootstrap b = bootstrap;
+        return b == null ? 0 : b.core().txActive();
+    }
+
+    @Override
+    public boolean enablePeer(String peerId) {
+        return false;
+    }
+
+    @Override
+    public boolean disablePeer(String peerId) {
+        return false;
     }
 }

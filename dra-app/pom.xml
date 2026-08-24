@@ -22,6 +22,17 @@
       <groupId>et.elisa</groupId>
       <artifactId>dra-ra</artifactId>
       <version>${project.version}</version>
+      <exclusions>
+        <!-- cache-spi only needs UUIDGenerator; drop its unused cluster stack -->
+        <exclusion>
+          <groupId>org.infinispan</groupId>
+          <artifactId>infinispan-core</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.jgroups</groupId>
+          <artifactId>jgroups</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-arc</artifactId></dependency>
@@ -32,24 +43,19 @@
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-flyway</artifactId></dependency>
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-scheduler</artifactId></dependency>
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-jdbc-h2</artifactId></dependency>
-    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-elytron-security-common</artifactId></dependency>
 
     <dependency><groupId>com.microjainslee</groupId><artifactId>jainslee-core</artifactId><version>${microjainslee.version}</version></dependency>
     <dependency><groupId>com.microjainslee</groupId><artifactId>jainslee-api</artifactId><version>${microjainslee.version}</version></dependency>
-    <dependency><groupId>com.microjainslee</groupId><artifactId>jainslee-cluster</artifactId><version>${microjainslee.version}</version></dependency>
     <dependency><groupId>com.microjainslee</groupId><artifactId>jainslee-telemetry</artifactId><version>${microjainslee.version}</version></dependency>
     <dependency><groupId>com.microjainslee</groupId><artifactId>jainslee-admin-spi</artifactId><version>${microjainslee.version}</version></dependency>
     <dependency><groupId>com.microjainslee</groupId><artifactId>jainslee-monitor</artifactId><version>${microjainslee.version}</version></dependency>
     <dependency><groupId>com.microjainslee</groupId><artifactId>adapter-quarkus</artifactId><version>${microjainslee.version}</version></dependency>
     <dependency><groupId>com.microjainslee</groupId><artifactId>jainslee-apt</artifactId><version>${microjainslee.version}</version><optional>true</optional></dependency>
 
-    <dependency><groupId>com.microjainslee</groupId><artifactId>ra-diameter</artifactId><version>${microjainslee.version}</version></dependency>
     <dependency><groupId>com.microjainslee</groupId><artifactId>ra-prometheus-exporter</artifactId><version>${microjainslee.version}</version></dependency>
 
     <dependency><groupId>io.micrometer</groupId><artifactId>micrometer-registry-prometheus</artifactId><version>1.14.0</version></dependency>
 
-    <dependency><groupId>com.mobius-software.protocols.diameter</groupId><artifactId>diameter-api</artifactId></dependency>
-    <dependency><groupId>com.mobius-software.protocols.diameter</groupId><artifactId>diameter-impl</artifactId></dependency>
 
     <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><scope>test</scope></dependency>
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-junit5</artifactId><scope>test</scope></dependency>

@@ -42,6 +42,7 @@ public final class WriteBehindPersistence implements AutoCloseable {
     private final LongAdder failedBatches = new LongAdder();
     private final LongAdder retriedBatches = new LongAdder();
     private final LongAdder droppedAfterRetryTotal = new LongAdder();
+    private volatile boolean flushRequested;
 
     public WriteBehindPersistence(PersistenceHook hook) {
         this(hook, 200, 100_000);
@@ -117,10 +118,15 @@ public final class WriteBehindPersistence implements AutoCloseable {
                 doFlush();
                 deadline = System.nanoTime() + intervalNanos;
             }
+            if (flushRequested) {
+                drainQueueIntoStaging();
+                doFlush();
+                flushRequested = false;
+            }
             try {
                 Thread.sleep(2);
             } catch (InterruptedException e) {
-                break;
+                // woken for explicit flush or shutdown — fall through
             }
         }
         drainQueueIntoStaging();
@@ -151,12 +157,28 @@ public final class WriteBehindPersistence implements AutoCloseable {
         }
     }
 
+    /**
+     * Single-writer discipline: only the worker thread mutates staging/applies
+     * batches. Callers just wake it and wait until everything enqueued before
+     * this call has been applied — no concurrent flush interleavings.
+     */
     public void flush() {
-        drainQueueIntoStaging();
-        doFlush();
+        flushRequested = true;
+        worker.interrupt();
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
+        while (flushRequested && System.nanoTime() < deadline) {
+            if (!worker.isAlive()) {
+                break;
+            }
+            Thread.onSpinWait();
+        }
     }
 
     private void doFlush() {
+        doFlushLocked();
+    }
+
+    private void doFlushLocked() {
         LinkedHashMap<String, Op> batch;
         boolean includesRetry;
         synchronized (stagingLock) {
@@ -218,6 +240,7 @@ public final class WriteBehindPersistence implements AutoCloseable {
     @Override
     public void close() throws InterruptedException {
         running = false;
+        flushRequested = false;
         worker.interrupt();
         worker.join(5_000);
         drainQueueIntoStaging();

@@ -28,13 +28,8 @@ public class AdminWire {
 
     @Produces
     @ApplicationScoped
-    public AdminPort adminPort() {
-        return AdminPort.NOOP;
-    }
-
-    @Produces
-    @ApplicationScoped
     public TelemetryPort telemetryPort() {
         return TelemetryPort.NOOP;
     }
+
 }

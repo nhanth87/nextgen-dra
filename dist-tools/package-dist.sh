@@ -55,6 +55,7 @@ MAJOR="$("$JH/bin/java" -version 2>&1 | head -1 | sed -n 's/.*version "\([0-9]*\
 [ "$MAJOR" = "25" ] || { echo "ERROR: Java 25 required, got $MAJOR" >&2; exit 1; }
 MAIN_JAR="$(ls "$HERE"/quarkus-run.jar 2>/dev/null || ls "$HERE"/dra-app-*.jar)"
 exec "$JH/bin/java" \
+  -Dlog4j.configurationFile="$HERE/configs/log4j2.xml" \
   -XX:+UseZGC \
   -XX:+ExitOnOutOfMemoryError \
   -Xlog:gc*:file="$HERE/logs/gc.log":time,uptime:filecount=3,filesize=10m \
@@ -66,7 +67,7 @@ echo "[3/5] html + configs (no operator clobber)"
 if [ -d "$REPO_ROOT/dra-app/html" ]; then
   cp -a "$REPO_ROOT/dra-app/html/." "$OUT/html/" 2>/dev/null || true
 fi
-for tpl in "$REPO_ROOT/configs/"*.json "$REPO_ROOT/configs/"*.sample; do
+for tpl in "$REPO_ROOT/configs/"*.json "$REPO_ROOT/configs/"*.xml "$REPO_ROOT/configs/"*.sample; do
   [ -e "$tpl" ] || continue
   base="$(basename "$tpl")"
   target="$OUT/configs/${base%.sample}"

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Nextgen DRA - Log4j2 house config (et.elisa / corsac / micro-jainslee). -->
+<Configuration status="WARN">
+    <Properties>
+        <Property name="PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{1} - %msg%n</Property>
+    </Properties>
+    <Appenders>
+        <Console name="console" target="SYSTEM_OUT">
+            <PatternLayout pattern="${PATTERN}"/>
+        </Console>
+        <RollingFile name="file" fileName="logs/dra.log"
+                     filePattern="logs/dra-%d{yyyyMMdd}-%i.log.gz"
+                     immediateFlush="true">
+            <PatternLayout pattern="${PATTERN}"/>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="50 MB"/>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+            </Policies>
+            <DefaultRolloverStrategy max="10"/>
+        </RollingFile>
+    </Appenders>
+    <Loggers>
+        <Logger name="et.elisa.dra" level="INFO"/>
+        <Logger name="com.mobius.software.telco.protocols.diameter" level="INFO"/>
+        <Root level="INFO">
+            <AppenderRef ref="console"/>
+            <AppenderRef ref="file"/>
+        </Root>
+    </Loggers>
+</Configuration>
