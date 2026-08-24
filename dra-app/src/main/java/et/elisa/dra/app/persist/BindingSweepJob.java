@@ -32,7 +32,7 @@ public class BindingSweepJob {
         this.batchSize = batchSize;
     }
 
-    @Scheduled(every = "{dra.bindings.sweep-every-seconds}s")
+    @Scheduled(every = "{dra.bindings.sweep-every}")
     void sweep() {
         if (!sources.isResolvable()) {
             return;

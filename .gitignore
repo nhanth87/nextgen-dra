@@ -10,3 +10,13 @@ data/
 dist/
 .flattened-pom.xml
 *.log
+
+# local working docs — not for upload (keep README.md only)
+*.md
+!README.md
+docs/
+tools/
+
+# release artifacts (uploaded manually)
+*.tar.gz
+*.zip
