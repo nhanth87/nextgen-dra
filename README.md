@@ -5,18 +5,28 @@
 bộ rule engine đầy đủ: realm/host routing, IMSI-prefix routing (MVNO), load
 balancing, sticky binding, failover, overload control, topology hiding.
 
-Trạng thái hiện tại: **THIẾT KẾ + PLAN** (chưa có code). Bắt đầu implement sau
-khi design được duyệt.
+Trạng thái hiện tại: **IMPLEMENTED — lab-ready** (278 tests xanh; N-N relay
+được chứng minh bằng socket thật; strict micro-jainslee wiring qua
+`MicroSleeContainer`). Chưa chứng minh production capacity — xem runbook.
 
-## Tài liệu
+## Build & chạy nhanh
 
-| File | Nội dung |
-|------|----------|
-| [`docs/design/01-research.md`](docs/design/01-research.md) | Nghiên cứu domain DRA: spec 3GPP/GSMA/IETF, chức năng cốt lõi, landscape vendor, khoảng trống trong nhà |
-| [`docs/design/02-architecture.md`](docs/design/02-architecture.md) | Kiến trúc Nextgen DRA: layers, module layout, luồng message, RA extension, threading, HA, config, packaging |
-| [`docs/design/03-routing-rules.md`](docs/design/03-routing-rules.md) | Spec bộ rule engine N-N: matchers, actions, LB strategies, sticky binding, topology hiding, ví dụ cấu hình |
-| [`docs/design/04-plan.md`](docs/design/04-plan.md) | Plan implement P0–P6: tasks, acceptance gates, test strategy, rủi ro |
-| [`docs/specs/`](docs/specs/README.md) | Bản copy offline các spec 3GPP (Rel-19) + IETF RFC liên quan Diameter/DRA (.md) |
+```bash
+export JAVA_HOME=$(mise where java@zulu-25)   # JDK 25 only
+mvn clean test                                # full suite
+dist-tools/package-dist.sh                    # -> dist/dra (run.sh + configs + html)
+```
+
+Database: mặc định H2 file demo (`./data/dra`) không cần cài gì; production
+export `DRA_DB_KIND=postgresql` + `DRA_DB_URL/DRA_DB_USER/DRA_DB_PASSWORD`.
+
+Hướng dẫn giới thiệu từng bước (kèm HSS simulator): xem
+`GETTING_STARTED.md` trong bản dist nén.
+
+## Tài liệu nội bộ
+
+Design/specs docs được giữ local (không track trong repo): `docs/design/*.md`,
+`docs/specs/` (bản copy 3GPP Rel-19 + RFC), runbook vận hành.
 
 ## Vị trí trong hệ sinh thái Elisa
 
@@ -38,8 +48,31 @@ khi design được duyệt.
 - Peer truth = **CER/CEA live (`isPeerReady()`)**, LISTEN ≠ ready. Không bao giờ
   route vào peer chưa ready; không trả silent 2xxx khi không deliver được.
 
-## Bản quyền
+## Licensing
 
-Corsac Diameter là **AGPL v3** (local fork). Toàn bộ Nextgen DRA kế thừa điều
-kiện này — không link tĩnh vào sản phẩm đóng. Ghi nhận trong mọi decision liên
-quan tới việc fork thêm corsac (xem 04-plan § Rủi ro).
+Elisa Nextgen DRA is **dual-licensed** — pick the model that fits your use:
+
+### 1. Open Source (GPLv3 / AGPLv3)
+
+| Component | License | Notes |
+|-----------|---------|-------|
+| micro-jainslee core (`jainslee-core`, `jainslee-api`, vendor RAs) | **GPLv3** | JAIN SLEE 1.1 container family |
+| `dra-core`, `dra-ra`, `dra-app`, `bench` | **GPLv3** | application code on top of the SLEE |
+| corsac-diameter (transport, local fork) | **AGPLv3** | network-copyleft: distributing a build that links it requires publishing the corresponding source of your modifications |
+
+Running the DRA as-is (your own network, no distribution) has no copyleft
+obligations. If you distribute appliances or embed it into a closed product
+under the open-source route, the GPLv3/AGPLv3 terms above apply in full.
+
+### 2. Commercial License
+
+Available from **Digicom-ET / Tran Nhan (nhanth87)** for operators and vendors
+who need to:
+
+- embed or redistribute the DRA without GPLv3/AGPLv3 copyleft obligations,
+- receive SLA-backed support, hardening and certification for production NNI,
+- ship closed-source derivatives.
+
+Contact: `nhanth87@gmail.com`.
+
+Copyright © 2026 Tran Nhan (nhanth87). All rights reserved where applicable.
