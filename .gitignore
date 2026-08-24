@@ -13,7 +13,7 @@ dist/
 
 # local working docs — not for upload (keep README.md only)
 *.md
-!README.md
+!/README.md
 docs/
 tools/
 
