@@ -1,0 +1,9 @@
+I have now traced the full Diameter message-handling path: production ingress (`CorsacPeerFabric.onCorsacIngress` → `CorsacMessageBridge.toDiaMsg`), the relay plane (`DraRelaySbb` → `RelayCore` → `AvpOps`/`KeyExtractorImpl`/`RuleEngineImpl`/`TopologyHiderImpl`/`Screener`/`OverloadGateImpl`), and the DRA's own wire codec (`DiameterWireCodec.encode/decode`). The message/IEs in the coverage map are all handled generically through these components.
+
+The one implicit-trust (PA1) finding is in the DRA's raw-frame Diameter decoder, where the untrusted AVP `avp-length` field drives buffer reads with incomplete syntactic validation.
+
+PA1 (Malformed Field, syntactic validation) audit complete for the DRA codebase.
+
+**Finding — DA-PA1-001** (accepted): In `DiameterWireCodec.decode()`, the untrusted AVP header `avp-length` field is validated only against the 8-byte base AVP header. When the V (vendor) bit is set, the header is actually 12 bytes, yet the decoder still reads a 4-byte Vendor-Id (`readUnsignedInt`) and derives a negative data length. A crafted vendor AVP with `avp-length` in [8..11] produces a +4-byte buffer over-read per AVP (accumulating across chained vendor AVPs), which can read past the declared Diameter message length and out of the underlying `ByteBuf`.
+
+**Coverage:** all 10 messages (56 IEs) were audited through the common handling path — Corsac ingress/bridge, relay SBB, `RelayCore`, `AvpOps`, `KeyExtractorImpl`, `RuleEngineImpl`, `TopologyHiderImpl`, `Screener`, `OverloadGateImpl`, and `DiameterWireCodec` encode/decode. The remaining AVP/IE extractors are memory-safe (defensive byte-array length checks, Java string handling); the only length-field-driven buffer operation with a missing syntactic check is the decoder site above. No skipped messages or missing IE paths.

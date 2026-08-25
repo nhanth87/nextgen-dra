@@ -12,9 +12,7 @@
   <name>Elisa Nextgen DRA</name>
 
   <modules>
-    <module>dra-core</module>
-    <module>dra-ra</module>
-    <module>dra-app</module>
+    <module>elisa-dra</module>
     <module>bench</module>
     <module>lab/sas-diameter-testapp</module>
   </modules>
@@ -27,10 +25,18 @@
     <microjainslee.version>1.2.0-SNAPSHOT</microjainslee.version>
     <corsac.version>10.0.0-41-SNAPSHOT</corsac.version>
     <junit.version>5.10.2</junit.version>
+    <log4j2.version>2.24.3</log4j2.version>
   </properties>
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-bom</artifactId>
+        <version>${log4j2.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
       <dependency>
         <groupId>io.quarkus.platform</groupId>
         <artifactId>quarkus-bom</artifactId>
@@ -47,13 +53,8 @@
       </dependency>
       <dependency>
         <groupId>et.elisa</groupId>
-        <artifactId>dra-core</artifactId>
+        <artifactId>elisa-dra</artifactId>
         <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.microjainslee</groupId>
-        <artifactId>ra-diameter</artifactId>
-        <version>${microjainslee.version}</version>
       </dependency>
       <dependency>
         <groupId>com.mobius-software.protocols.diameter</groupId>
@@ -75,6 +76,9 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <version>3.2.5</version>
+          <configuration>
+            <argLine>-Djava.util.logging.manager=org.apache.logging.log4j.jul.LogManager -Dorg.jboss.logging.provider=log4j2</argLine>
+          </configuration>
         </plugin>
       </plugins>
     </pluginManagement>

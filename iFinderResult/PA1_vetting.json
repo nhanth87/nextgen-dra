@@ -1,0 +1,47 @@
+{
+  "pattern_id": "PA1",
+  "target_codebase": "target/dra_code",
+  "target_version": "0.1.0-SNAPSHOT",
+  "timestamp": "2026-08-25T22:05:42.286953Z",
+  "statistics": {
+    "feasible": 1,
+    "infeasible": 0
+  },
+  "results": [
+    {
+      "candidate_id": "DA-PA1-001",
+      "verdict": "FEASIBLE",
+      "procedure": "S6A_Update_Location",
+      "prerequisite_handlers_checked": [
+        {
+          "message": "CapabilitiesExchangeRequest",
+          "handler": "CorsacMessageBridge.isBaseProtocol + CorsacPeerFabric.onCorsacIngress",
+          "file": "/home/meodien/Desktop/ethiopia-working-dir/worktrees/Nextgen-DRA/lab/ifinder/target/dra_code/elisa-dra/src/main/java/et/elisa/dra/app/ra/CorsacMessageBridge.java",
+          "validation_found": false,
+          "detail": "No dedicated CER Request handler exists in elisa-dra; command 257 is classified base-protocol by isBaseProtocol (lines 30-38) and onCorsacIngress (CorsacPeerFabric lines 233-240) returns immediately. No AVP 'avp-length' or V-flag header-size validation is performed."
+        },
+        {
+          "message": "CapabilitiesExchangeAnswer",
+          "handler": "CorsacPeerFabric.onCorsacIngress + PeerConnection.ceaAccepted",
+          "file": "/home/meodien/Desktop/ethiopia-working-dir/worktrees/Nextgen-DRA/lab/ifinder/target/dra_code/elisa-dra/src/main/java/et/elisa/dra/app/ra/CorsacPeerFabric.java",
+          "validation_found": false,
+          "detail": "CEA path only transitions PeerState to OPEN and records advertised application ids (PeerConnection.ceaAccepted lines 48-57). No AVP length/vendor validation of the wire framing."
+        },
+        {
+          "message": "",
+          "handler": "n/a",
+          "file": "n/a",
+          "validation_found": false,
+          "detail": "Empty-string placeholder in the prerequisite list; no corresponding message or handler in the codebase."
+        }
+      ],
+      "evidence": "DiameterWireCodec.decode (lines 89-116) validates avpLength only against the 8-byte base header (line 93: avpLength < AVP_HEADER_LENGTH). When FLAG_V (0x80) is set, line 96 unconditionally reads a 4-byte Vendor-Id (12-byte header) but dataLength=avpLength-8-4 (line 98, clamped >=0 at line 99) and offset advances by pad(avpLength) (line 115). For avp-length in [8..11] with V set, the decoder consumes a 12-byte header while advancing offset by only 8-12 bytes, over-reading relative to the declared Diameter 'length' and, for a trailing AVP at the message boundary, past the buffer (Netty IndexOutOfBoundsException). The prerequisite CER/CEA (Capabilities Exchange, command 257) path does not pre-validate this: isBaseProtocol/onCorsacIngress short-circuit base-protocol messages before any AVP inspection, peer state transitions (ceaAccepted) carry no framing validation, and there are no CapabilitiesExchangeRequest/Answer handler classes in elisa-dra. The 12-byte vendor-header rule is applied correctly only in the separate bench module (DiaWire.decodeAvps, hdr = vendorFlag ? 12 : 8), not in the production codec. The missing validation is therefore absent on the reachable decode path.",
+      "rejection_reason": null,
+      "prerequisite_messages": [
+        "CapabilitiesExchangeRequest",
+        "",
+        "CapabilitiesExchangeAnswer"
+      ]
+    }
+  ]
+}

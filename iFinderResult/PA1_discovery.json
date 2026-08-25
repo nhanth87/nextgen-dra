@@ -1,0 +1,35 @@
+{
+  "pattern_id": "PA1",
+  "target_codebase": "target/dra_code",
+  "target_version": "0.1.0-SNAPSHOT",
+  "timestamp": "2026-08-25T21:55:33.479641Z",
+  "candidates": [
+    {
+      "id": "DA-PA1-001",
+      "vulnerable_site": {
+        "file": "elisa-dra/src/main/java/et/elisa/dra/app/ra/wire/DiameterWireCodec.java",
+        "line": 96,
+        "function": "decode",
+        "dangerous_operation": "in.readUnsignedInt() Vendor-Id read and in.readBytes(data) buffer copy driven by the untrusted AVP 'avp-length' field"
+      },
+      "trigger_message": "UpdateLocationRequest",
+      "trigger_ie": "VisitedPlmnId",
+      "ie_field": "AVP header avp-length (3-byte length) + V (vendor) flag",
+      "call_chain": [
+        "CorsacMessageBridge.fromRawFrame",
+        "DiameterWireCodec.decode"
+      ],
+      "data_flow": "Received Diameter frame bytes are wrapped in a ByteBuf and passed to decode(). The decoder reads each AVP's 3-byte 'avp-length' (readUnsignedMedium) and validates it only with 'avpLength < AVP_HEADER_LENGTH(8)' plus 'offset+avpLength <= length'. When the V (vendor) bit is set the AVP header is actually 12 bytes, but the decoder unconditionally reads a 4-byte Vendor-Id (readUnsignedInt) and computes dataLength = avpLength - 12 (clamped to >=0). An AVP with vendor bit set and avp-length in [8..11] therefore reads 12 bytes while advancing offset by only 8 (pad), a +4-byte over-read per such AVP that accumulates across a chain of malformed vendor AVPs and, for a trailing AVP whose declared message length equals the buffer, reads past the Diameter message 'length' and out of the underlying buffer.",
+      "missing_validation": "Syntactic length validation is incomplete: 'avp-length' is validated against the 8-byte base AVP header size but not against the 12-byte header size required when the V (vendor) flag is set (avpLength >= AVP_HEADER_LENGTH + 4), before the Vendor-Id read and data-length computation are performed.",
+      "network_function": "DRA"
+    }
+  ],
+  "coverage_report": {
+    "total_messages": 10,
+    "audited_messages": 10,
+    "total_ies": 56,
+    "audited_ies": 56,
+    "skipped_messages": [],
+    "missing_ie_paths": []
+  }
+}

@@ -16,7 +16,7 @@
   <dependencies>
     <dependency>
       <groupId>et.elisa</groupId>
-      <artifactId>dra-core</artifactId>
+      <artifactId>elisa-dra</artifactId>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
