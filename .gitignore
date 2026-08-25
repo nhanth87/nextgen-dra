@@ -11,9 +11,10 @@ dist/
 .flattened-pom.xml
 *.log
 
-# local working docs — not for upload (keep README.md only)
+# local working docs — not for upload (keep READMEs only)
 *.md
 !/README.md
+!/README.vi.md
 docs/
 tools/
 

@@ -33,6 +33,7 @@ import et.elisa.dra.lab.testapp.SubscriberState;
 
 final class S6aHandler implements ServerListener {
 
+    private static final long S6A_APP_ID = 16777251L;
     private static final Logger LOG = LogManager.getLogger(S6aHandler.class);
 
     private final HssSimulator hss;
@@ -51,17 +52,37 @@ final class S6aHandler implements ServerListener {
             AsyncCallback callback) {
         try {
             S6aAnswer answer = build(request);
+            tagVendorAppId(answer, S6A_APP_ID);
             session.sendInitialAnswer(answer, callback);
         } catch (Exception e) {
             LOG.warn("S6a handler failure on {} — fail-safe {} answer",
                     request.getClass().getSimpleName(), Answers.UNABLE_TO_DELIVER, e);
             try {
-                session.sendInitialAnswer(unableToDeliver(request), callback);
+                S6aAnswer fallback = unableToDeliver(request);
+                tagVendorAppId(fallback, S6A_APP_ID);
+                session.sendInitialAnswer(fallback, callback);
             } catch (Exception fatal) {
                 LOG.error("S6a fail-safe answer failed", fatal);
                 callback.onError(new DiameterException("handler failure", null,
                         Answers.UNABLE_TO_DELIVER, null));
             }
+        }
+    }
+
+    /**
+     * Corsac routes answers by the peer's advertised Vendor-Specific-Application-Id
+     * capability; an answer without that AVP fails canSendMessage() and is dropped
+     * with DIAMETER_UNKNOWN_PEER before reaching the wire. Always tag it.
+     */
+    static void tagVendorAppId(
+            com.mobius.software.telco.protocols.diameter.commands.commons.VendorSpecificAnswer answer,
+            long authAppId) {
+        try {
+            answer.setVendorSpecificApplicationId(
+                    new com.mobius.software.telco.protocols.diameter.impl.primitives.common.VendorSpecificApplicationIdImpl(
+                            null, authAppId, null));
+        } catch (Exception e) {
+            LOG.warn("cannot tag Vendor-Specific-Application-Id: {}", e.toString());
         }
     }
 

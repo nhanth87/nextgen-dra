@@ -31,6 +31,7 @@ public final class SeederClient implements AutoCloseable {
 
     private final String host;
     private final int port;
+    private final int sourcePort;
     private final int connections;
     private final double tps;
     private final long timeoutNanos;
@@ -45,20 +46,31 @@ public final class SeederClient implements AutoCloseable {
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final AtomicLong maxNanos = new AtomicLong();
     private final String imsiPrefix;
+    private final String destinationHost;
 
     public SeederClient(String host, int port, int connections, double tps,
                         long timeoutMillis, String imsiPrefix) throws IOException {
+        this(host, port, 0, connections, tps, timeoutMillis, imsiPrefix, "");
+    }
+
+    public SeederClient(String host, int port, int sourcePort, int connections, double tps,
+                        long timeoutMillis, String imsiPrefix, String destinationHost) throws IOException {
         this.host = host;
         this.port = port;
+        this.sourcePort = sourcePort;
         this.connections = connections;
         this.tps = tps;
         this.timeoutNanos = timeoutMillis * 1_000_000L;
         this.imsiPrefix = imsiPrefix;
+        this.destinationHost = destinationHost == null ? "" : destinationHost;
         for (int i = 0; i < HISTO_BUCKETS; i++) {
             histogram[i] = new LongAdder();
         }
         for (int i = 0; i < connections; i++) {
             Socket socket = new Socket();
+            if (sourcePort > 0) {
+                socket.bind(new InetSocketAddress(host, sourcePort));
+            }
             socket.connect(new InetSocketAddress(host, port), 5000);
             socket.setTcpNoDelay(true);
             DataInputStream in = new DataInputStream(
@@ -72,6 +84,11 @@ public final class SeederClient implements AutoCloseable {
     public Stats run(int count) throws InterruptedException {
         running.set(true);
         Thread sweeper = Thread.ofVirtual().start(this::sweepLoop);
+        Thread[] readers = new Thread[conns.size()];
+        int ri = 0;
+        for (Conn conn : conns) {
+            readers[ri++] = Thread.ofVirtual().start(() -> readLoop(conn));
+        }
         long begin = System.nanoTime();
         Thread[] workers = new Thread[connections];
         int perConn = count / connections;
@@ -128,6 +145,20 @@ public final class SeederClient implements AutoCloseable {
         }
     }
 
+    private List<et.elisa.dra.core.wire.DiaAvp> avpsFor(String imsi) {
+        var avps = new java.util.ArrayList<et.elisa.dra.core.wire.DiaAvp>();
+        avps.add(DiaWire.utf8(263, 0, false, imsi + "@" + host));
+        avps.add(DiaWire.utf8(264, 0, false, "seeder.example.org"));
+        avps.add(DiaWire.utf8(296, 0, false, "epc.mnc01.mcc452.3gppnetwork.org"));
+        avps.add(DiaWire.utf8(283, 0, false, "epc.mnc01.mcc452.3gppnetwork.org"));
+        if (!destinationHost.isBlank()) {
+            avps.add(DiaWire.utf8(293, 0, false, destinationHost));
+        }
+        avps.add(DiaWire.u32(258, 0, true, 16777251));
+        avps.add(DiaWire.utf8(1, 0, true, imsi));
+        return avps;
+    }
+
     private Conn pickConn() {
         int idx = (int) (e2eSeq.get() % conns.size());
         return conns.get(idx);
@@ -139,13 +170,7 @@ public final class SeederClient implements AutoCloseable {
         String imsi = imsiPrefix + String.format("%08d", (int) (e2e % 100_000_000));
         byte[] frame = DiaWire.encode(DiaWire.FLAG_REQUEST | DiaWire.FLAG_PROXYABLE,
                 CMD_ULR_ULA, 16777251, hbh, e2e,
-                List.of(
-                        DiaWire.utf8(263, 0, false, imsi + "@" + host),
-                        DiaWire.utf8(264, 0, false, "seeder.example.org"),
-                        DiaWire.utf8(296, 0, false, "epc.mnc01.mcc452.3gppnetwork.org"),
-                        DiaWire.utf8(283, 0, false, "epc.mnc01.mcc452.3gppnetwork.org"),
-                        DiaWire.u32(258, 0, true, 16777251),
-                        DiaWire.utf8(1, 0, true, imsi)));
+                avpsFor(imsi));
         pending.put(hbh, System.nanoTime());
         OutputStream out = conn.socket().getOutputStream();
         synchronized (conn.socket()) {
@@ -178,7 +203,7 @@ public final class SeederClient implements AutoCloseable {
 
     private void handshake(Conn conn) throws IOException {
         byte[] cer = DiaWire.encode(DiaWire.FLAG_REQUEST | DiaWire.FLAG_PROXYABLE,
-                CMD_CER_CEA, 16777251, 1, 1,
+                CMD_CER_CEA, 0, 1, 1,
                 List.of(
                         DiaWire.utf8(264, 0, false, "seeder.example.org"),
                         DiaWire.utf8(296, 0, false, "epc.mnc01.mcc452.3gppnetwork.org"),
@@ -202,7 +227,6 @@ public final class SeederClient implements AutoCloseable {
                         throw new IOException("CEA not 2001");
                     }
                     conn.socket().setSoTimeout(0);
-                    Thread.ofVirtual().start(() -> readLoop(conn));
                     return;
                 }
             }

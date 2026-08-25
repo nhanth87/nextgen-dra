@@ -65,6 +65,7 @@ public class DraBootstrapBean implements AdminPort {
 
     private volatile DraBootstrap bootstrap;
     private volatile DraRaPort raPort;
+    private volatile DiameterRaConfig activeConfig;
 
     public DraBootstrapBean() {
     }
@@ -79,6 +80,7 @@ public class DraBootstrapBean implements AdminPort {
             return;
         }
         DiameterRaConfig config = loadConfig();
+        activeConfig = config;
         raPort = createFabric(config);
         syncCandidates(config);
 
@@ -102,9 +104,25 @@ public class DraBootstrapBean implements AdminPort {
             sim.setIngressListener(bootstrap.endpoint()::onRaIngress);
         } else if (raPort instanceof et.elisa.dra.ra.CorsacPeerFabric corsac) {
             corsac.setIngressListener(bootstrap.endpoint()::onRaIngress);
+            corsac.start();
         }
+        syncCandidates(config);
         LOG.info("[dra-bean] DRA relay plane live (peers={}, ready={})",
                 config.peers().size(), raPort.peersHealth().size());
+    }
+
+    @io.quarkus.scheduler.Scheduled(every = "5s")
+    void onCron() {
+        DiameterRaConfig config = activeConfig;
+        DraRaPort port = raPort;
+        if (config == null || port == null || bootstrap == null) {
+            return;
+        }
+        try {
+            syncCandidates(config);
+        } catch (RuntimeException e) {
+            LOG.debug("[dra-bean] candidate refresh skipped: {}", e.toString());
+        }
     }
 
     private static CandidateSource candidatesFrom(RuleEngineImpl engine) {
@@ -174,6 +192,11 @@ public class DraBootstrapBean implements AdminPort {
 
     @PreDestroy
     void shutdown() {
+        DraRaPort port = raPort;
+        if (port instanceof et.elisa.dra.ra.CorsacPeerFabric corsac) {
+            corsac.stop();
+        }
+        raPort = null;
         DraBootstrap b = bootstrap;
         bootstrap = null;
         if (b != null) {

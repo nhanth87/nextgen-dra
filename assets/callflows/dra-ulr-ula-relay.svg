@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="940" height="520" viewBox="0 0 940 520" font-family="Inter, Segoe UI, Arial, sans-serif">
+<defs>
+<marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#67e8f9"/></marker>
+<marker id="ahr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#f472b6"/></marker>
+</defs>
+<rect x="1" y="1" width="938" height="518" rx="16" fill="#0d1526" stroke="#1e293b"/>
+<text x="470" y="30" text-anchor="middle" font-size="17" font-weight="700" fill="#f8fafc">Elisa Nextgen DRA — S6a ULR/ULA relay call flow</text>
+<text x="470" y="46" text-anchor="middle" font-size="11" fill="#64748b">N-N relay on micro-jainslee · SCTP or TCP · fail-closed routing</text>
+
+<!-- actor headers -->
+<rect x="52" y="62" width="196" height="62" rx="10" fill="#16213a" stroke="#06b6d4" stroke-opacity="0.5"/>
+<text x="150" y="86" text-anchor="middle" font-size="12.5" font-weight="700" fill="#f1f5f9">Seeder / MME</text>
+<text x="150" y="104" text-anchor="middle" font-size="10.5" fill="#8ea3bb">SCTP|TCP diameter client</text>
+<rect x="372" y="62" width="196" height="62" rx="10" fill="#16213a" stroke="#22d3ee" stroke-opacity="0.85"/>
+<text x="470" y="86" text-anchor="middle" font-size="12.5" font-weight="700" fill="#f1f5f9">Elisa Nextgen DRA</text>
+<text x="470" y="104" text-anchor="middle" font-size="10.5" fill="#8ea3bb">micro-jainslee relay agent</text>
+<rect x="692" y="62" width="196" height="62" rx="10" fill="#16213a" stroke="#06b6d4" stroke-opacity="0.5"/>
+<text x="790" y="86" text-anchor="middle" font-size="12.5" font-weight="700" fill="#f1f5f9">HSS simulator (hss-a)</text>
+<text x="790" y="104" text-anchor="middle" font-size="10.5" fill="#8ea3bb">SCTP :3869 · S6a/SWx/Gx</text>
+
+<!-- lifelines -->
+<line x1="150" y1="124" x2="150" y2="470" stroke="#334155" stroke-dasharray="4 5"/>
+<line x1="470" y1="124" x2="470" y2="470" stroke="#334155" stroke-dasharray="4 5"/>
+<line x1="790" y1="124" x2="790" y2="470" stroke="#334155" stroke-dasharray="4 5"/>
+
+<!-- 1 ULR in -->
+<line x1="150" y1="150" x2="462" y2="150" stroke="#67e8f9" stroke-width="1.5" marker-end="url(#ah)"/>
+<text x="306" y="139" text-anchor="middle" font-size="10.5" font-family="ui-monospace, Menlo, Consolas, monospace" fill="#9fb3c8"><tspan font-weight="700" fill="#67e8f9">1</tspan> · ULR — app 16777251 (S6a) · IMSI 4520402… · :3868</text>
+
+<!-- DRA self chips -->
+<rect x="360" y="168" width="220" height="48" rx="12" fill="rgba(6,182,212,0.10)" stroke="rgba(6,182,212,0.4)"/>
+<text x="470" y="187" text-anchor="middle" font-size="10.5" font-weight="600" fill="#7dd3fc">2–4 · screening · overload gate · loop-check</text>
+<text x="470" y="204" text-anchor="middle" font-size="9.5" fill="#8ea3bb">violations ⇒ 3007 / 3004 TOO_BUSY / 3005 LOOP_DETECTED</text>
+
+<rect x="356" y="240" width="228" height="48" rx="12" fill="rgba(6,182,212,0.10)" stroke="rgba(6,182,212,0.4)"/>
+<text x="470" y="259" text-anchor="middle" font-size="10.5" font-weight="600" fill="#7dd3fc">rule engine — s6a-mvno-hss matched</text>
+<text x="470" y="276" text-anchor="middle" font-size="9.5" fill="#8ea3bb">forward mvno-hss-pool · WEIGHTED_RR 70/30 · sticky IMSI TTL 24h</text>
+
+<!-- 5 forward -->
+<line x1="478" y1="308" x2="782" y2="308" stroke="#67e8f9" stroke-width="1.5" marker-end="url(#ah)"/>
+<text x="630" y="297" text-anchor="middle" font-size="10.5" font-family="ui-monospace, Menlo, Consolas, monospace" fill="#9fb3c8"><tspan font-weight="700" fill="#67e8f9">5</tspan> · ULR forwarded · hbhIn→hbhOut · :3869</text>
+
+<!-- 6 ULA back -->
+<line x1="782" y1="348" x2="478" y2="348" stroke="#67e8f9" stroke-width="1.5" marker-end="url(#ah)"/>
+<text x="630" y="337" text-anchor="middle" font-size="10.5" font-family="ui-monospace, Menlo, Consolas, monospace" fill="#9fb3c8"><tspan font-weight="700" fill="#67e8f9">6</tspan> · ULA — 2001 / 5421 / 5001</text>
+
+<!-- 7 correlate chip -->
+<rect x="356" y="368" width="228" height="48" rx="12" fill="rgba(6,182,212,0.10)" stroke="rgba(6,182,212,0.4)"/>
+<text x="470" y="387" text-anchor="middle" font-size="10.5" font-weight="600" fill="#7dd3fc">correlate hbhOut→hbhIn · capture binding</text>
+<text x="470" y="404" text-anchor="middle" font-size="9.5" fill="#8ea3bb">topology-hiding restore · deadline sweep 5s drives retry/failover</text>
+
+<!-- 8 ULA out -->
+<line x1="462" y1="442" x2="158" y2="442" stroke="#67e8f9" stroke-width="1.5" marker-end="url(#ah)"/>
+<text x="306" y="431" text-anchor="middle" font-size="10.5" font-family="ui-monospace, Menlo, Consolas, monospace" fill="#9fb3c8"><tspan font-weight="700" fill="#67e8f9">8</tspan> · ULA answered on the original ingress link</text>
+
+<!-- fail-closed accent -->
+<line x1="470" y1="452" x2="470" y2="470" stroke="#f472b6" stroke-width="0" />
+<rect x="236" y="478" width="468" height="26" rx="13" fill="rgba(244,114,182,0.08)" stroke="rgba(244,114,182,0.35)"/>
+<text x="470" y="495" text-anchor="middle" font-size="11" font-weight="600" fill="#f9a8d4">no route / peer not ready ⇒ fail-closed DIAMETER_UNABLE_TO_DELIVER (3002) — never silent drop</text>
+</svg>

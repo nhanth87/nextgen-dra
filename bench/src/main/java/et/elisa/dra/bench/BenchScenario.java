@@ -16,10 +16,12 @@ public final class BenchScenario {
         int connections = Integer.parseInt(opts.getOrDefault("connections", "4"));
         String imsiPrefix = opts.getOrDefault("imsi-prefix", "4520402");
         long timeoutMs = Long.parseLong(opts.getOrDefault("timeout-ms", "5000"));
+        int srcPort = Integer.parseInt(opts.getOrDefault("src-port", "0"));
+        String destHost = opts.getOrDefault("dest-host", "");
 
         int count = (int) (tps * durationS);
-        try (SeederClient client = new SeederClient(host, port, connections,
-                tps, timeoutMs, imsiPrefix)) {
+        try (SeederClient client = new SeederClient(host, port, srcPort, connections,
+                tps, timeoutMs, imsiPrefix, destHost)) {
             SeederClient.Stats stats = client.run(count);
             print(stats, tps, durationS);
             writeReport(stats, tps, durationS, connections);

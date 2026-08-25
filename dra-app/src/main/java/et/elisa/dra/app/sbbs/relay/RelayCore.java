@@ -34,6 +34,9 @@ import java.util.function.LongSupplier;
 
 public final class RelayCore {
 
+    private static final org.apache.logging.log4j.Logger LOG =
+            org.apache.logging.log4j.LogManager.getLogger(RelayCore.class);
+
     private static final Set<Integer> CAPTURE_COMMANDS = Set.of(
             RetryableCommands.CMD_ULR,
             RetryableCommands.CMD_AIR,
@@ -113,11 +116,17 @@ public final class RelayCore {
     }
 
     public void onRequest(String ingressPeerId, DiaMsg req) {
+        LOG.debug("[relay] onRequest peer={} cmd={} hbh={} imsi={}", ingressPeerId,
+                req.commandCode(), req.hopByHopId(),
+                AvpOps.firstUtf8(req, AvpCodes.USER_NAME).orElse(""));
         if (guardRejected(ingressPeerId, req)) {
             return;
         }
         RoutingContext ctx = engine.contextFor(ingressPeerId, req);
-        handleDecision(engine.resolve(ctx), ingressPeerId, req, true);
+        var decision = engine.resolve(ctx);
+        LOG.debug("[relay] decision {} for hbh={}", decision.getClass().getSimpleName(),
+                req.hopByHopId());
+        handleDecision(decision, ingressPeerId, req, true);
     }
 
     public void serverInitiated(String ingressPeerId, DiaMsg req) {

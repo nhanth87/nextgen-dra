@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="940" height="470" viewBox="0 0 940 470" font-family="Inter, Segoe UI, Arial, sans-serif">
+<defs>
+<marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#67e8f9"/></marker>
+</defs>
+<rect x="1" y="1" width="938" height="468" rx="16" fill="#0d1526" stroke="#1e293b"/>
+<text x="470" y="30" text-anchor="middle" font-size="17" font-weight="700" fill="#f8fafc">Elisa Nextgen DRA — internal request path</text>
+<text x="470" y="46" text-anchor="middle" font-size="11" fill="#64748b">strict micro-jainslee wiring · every hop measured · fail-closed by construction</text>
+
+<!-- column headers -->
+<text x="126" y="86" text-anchor="middle" font-size="10.5" letter-spacing="2" font-weight="700" fill="#64748b">DIAMETER RA PLANE</text>
+<text x="470" y="86" text-anchor="middle" font-size="10.5" letter-spacing="2" font-weight="700" fill="#64748b">MICRO-JAINSLEE CORE</text>
+<text x="790" y="86" text-anchor="middle" font-size="10.5" letter-spacing="2" font-weight="700" fill="#64748b">STATE &amp; EGRESS</text>
+
+<!-- col 1 -->
+<rect x="36" y="98" width="180" height="56" rx="10" fill="#16213a" stroke="#06b6d4" stroke-opacity="0.5"/>
+<text x="126" y="120" text-anchor="middle" font-size="12.5" font-weight="700" fill="#f1f5f9">corsac transport</text>
+<text x="126" y="138" text-anchor="middle" font-size="10.5" fill="#8ea3bb">any-command decode · SCTP|TCP · N links</text>
+<rect x="36" y="170" width="180" height="56" rx="10" fill="#16213a" stroke="#06b6d4" stroke-opacity="0.5"/>
+<text x="126" y="192" text-anchor="middle" font-size="12.5" font-weight="700" fill="#f1f5f9">Peer Registry</text>
+<text x="126" y="210" text-anchor="middle" font-size="10.5" fill="#8ea3bb">channelUp + CEA + watchdog truth</text>
+<rect x="36" y="242" width="180" height="56" rx="10" fill="#16213a" stroke="#06b6d4" stroke-opacity="0.5"/>
+<text x="126" y="264" text-anchor="middle" font-size="12.5" font-weight="700" fill="#f1f5f9">Ingress bridge</text>
+<text x="126" y="282" text-anchor="middle" font-size="10.5" fill="#8ea3bb">IngressRequest / IngressAnswer events</text>
+
+<!-- col 2 -->
+<rect x="330" y="98" width="280" height="56" rx="10" fill="#16213a" stroke="#22d3ee" stroke-opacity="0.85"/>
+<text x="470" y="120" text-anchor="middle" font-size="12.5" font-weight="700" fill="#f1f5f9">Event Router · IES dispatcher</text>
+<text x="470" y="138" text-anchor="middle" font-size="10.5" fill="#8ea3bb">Disruptor ring · lock-free · virtual threads</text>
+<rect x="380" y="176" width="180" height="46" rx="10" fill="#16213a" stroke="#06b6d4" stroke-opacity="0.5"/>
+<text x="470" y="195" text-anchor="middle" font-size="12.5" font-weight="700" fill="#f1f5f9">DraRelaySbb</text>
+<text x="470" y="212" text-anchor="middle" font-size="10.5" fill="#8ea3bb">request / answer handler</text>
+<rect x="330" y="240" width="280" height="128" rx="10" fill="#101a30" stroke="#06b6d4" stroke-opacity="0.35"/>
+<text x="346" y="262" font-size="12.5" font-weight="700" fill="#f1f5f9">RelayCore</text>
+<rect x="342" y="272" width="82" height="26" rx="8" fill="rgba(6,182,212,0.10)" stroke="rgba(6,182,212,0.4)"/><text x="383" y="289" text-anchor="middle" font-size="10" font-weight="600" fill="#7dd3fc">screening</text>
+<rect x="430" y="272" width="82" height="26" rx="8" fill="rgba(6,182,212,0.10)" stroke="rgba(6,182,212,0.4)"/><text x="471" y="289" text-anchor="middle" font-size="10" font-weight="600" fill="#7dd3fc">overload</text>
+<rect x="518" y="272" width="80" height="26" rx="8" fill="rgba(6,182,212,0.10)" stroke="rgba(6,182,212,0.4)"/><text x="558" y="289" text-anchor="middle" font-size="10" font-weight="600" fill="#7dd3fc">loop-check</text>
+<rect x="342" y="306" width="82" height="26" rx="8" fill="rgba(6,182,212,0.10)" stroke="rgba(6,182,212,0.4)"/><text x="383" y="323" text-anchor="middle" font-size="10" font-weight="600" fill="#7dd3fc">rule engine</text>
+<rect x="430" y="306" width="168" height="26" rx="8" fill="rgba(6,182,212,0.10)" stroke="rgba(6,182,212,0.4)"/><text x="514" y="323" text-anchor="middle" font-size="10" font-weight="600" fill="#7dd3fc">topology hiding (TH)</text>
+<text x="346" y="354" font-size="10" fill="#8ea3bb">Forward | Redirect | Reject — sticky-aware LB pick,</text>
+<text x="346" y="368" font-size="10" fill="#8ea3bb">server-initiated resolves IMSI→peer or fails closed</text>
+
+<!-- col 3 -->
+<rect x="700" y="98" width="204" height="56" rx="10" fill="#16213a" stroke="#06b6d4" stroke-opacity="0.5"/>
+<text x="802" y="120" text-anchor="middle" font-size="12.5" font-weight="700" fill="#f1f5f9">TxTable · HbhAllocator</text>
+<text x="802" y="138" text-anchor="middle" font-size="10.5" fill="#8ea3bb">hbh rewrite · deadline sweep 5s</text>
+<rect x="700" y="170" width="204" height="56" rx="10" fill="#16213a" stroke="#06b6d4" stroke-opacity="0.5"/>
+<text x="802" y="192" text-anchor="middle" font-size="12.5" font-weight="700" fill="#f1f5f9">Binding Store</text>
+<text x="802" y="210" text-anchor="middle" font-size="10.5" fill="#8ea3bb">sticky IMSI · write-behind H2/PG</text>
+<rect x="700" y="242" width="204" height="56" rx="10" fill="#16213a" stroke="#06b6d4" stroke-opacity="0.5"/>
+<text x="802" y="264" text-anchor="middle" font-size="12.5" font-weight="700" fill="#f1f5f9">Topology Hider</text>
+<text x="802" y="282" text-anchor="middle" font-size="10.5" fill="#8ea3bb">deterministic pseudo host · TH groups</text>
+<rect x="700" y="314" width="204" height="56" rx="10" fill="#16213a" stroke="#06b6d4" stroke-opacity="0.5"/>
+<text x="802" y="336" text-anchor="middle" font-size="12.5" font-weight="700" fill="#f1f5f9">Admin REST :8080</text>
+<text x="802" y="354" text-anchor="middle" font-size="10.5" fill="#8ea3bb">peers truth · rules hot-reload · telemetry</text>
+
+<!-- arrows -->
+<line x1="216" y1="126" x2="322" y2="118" stroke="#67e8f9" marker-end="url(#ah)"/>
+<line x1="216" y1="198" x2="322" y2="130" stroke="#67e8f9" marker-end="url(#ah)"/>
+<line x1="216" y1="270" x2="322" y2="142" stroke="#67e8f9" marker-end="url(#ah)"/>
+<line x1="470" y1="154" x2="470" y2="168" stroke="#67e8f9" marker-end="url(#ah)"/>
+<line x1="470" y1="222" x2="470" y2="232" stroke="#67e8f9" marker-end="url(#ah)"/>
+<line x1="618" y1="290" x2="692" y2="132" stroke="#67e8f9" marker-end="url(#ah)"/>
+<line x1="618" y1="308" x2="692" y2="204" stroke="#67e8f9" marker-end="url(#ah)"/>
+<line x1="618" y1="330" x2="692" y2="276" stroke="#67e8f9" marker-end="url(#ah)"/>
+<line x1="618" y1="350" x2="692" y2="338" stroke="#8fa6bf" stroke-dasharray="4 4" marker-end="url(#ahg)"/>
+
+<!-- footer pills -->
+<rect x="60" y="396" width="250" height="24" rx="12" fill="rgba(6,182,212,0.10)" stroke="rgba(6,182,212,0.4)"/><text x="185" y="412" text-anchor="middle" font-size="11" font-weight="600" fill="#7dd3fc">fail-closed DIAMETER 3002 egress</text>
+<rect x="340" y="396" width="260" height="24" rx="12" fill="rgba(6,182,212,0.10)" stroke="rgba(6,182,212,0.4)"/><text x="470" y="412" text-anchor="middle" font-size="11" font-weight="600" fill="#7dd3fc">DOIC OLR · DRMP · token-bucket admission</text>
+<rect x="630" y="396" width="250" height="24" rx="12" fill="rgba(6,182,212,0.10)" stroke="rgba(6,182,212,0.4)"/><text x="755" y="412" text-anchor="middle" font-size="11" font-weight="600" fill="#7dd3fc">Java 25 · ZGC · virtual threads</text>
+<text x="470" y="448" text-anchor="middle" font-size="11.5" font-style="italic" fill="#7c93ad">Answers correlate hbhOut→hbhIn and leave on the original ingress link; unknown hbh is a counted drop (injection guard)</text>
+</svg>

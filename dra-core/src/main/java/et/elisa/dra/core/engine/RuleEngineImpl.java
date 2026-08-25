@@ -43,6 +43,7 @@ public final class RuleEngineImpl implements RuleEngine {
     private final Consumer<String> audit;
     private final AtomicReference<Installed> installed = new AtomicReference<>(Installed.EMPTY);
     private final ConcurrentHashMap<String, GroupRuntime> groups = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, List<PeerHandle>> latestCandidates = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<CacheKey, Long> redirectCache = new ConcurrentHashMap<>();
 
     private final LongAdder resolveTotal = new LongAdder();
@@ -143,12 +144,23 @@ public final class RuleEngineImpl implements RuleEngine {
                         spec.failoverEnabled(), spec.maxRetries()));
             }
         }
+        applyLatestCandidates();
+    }
+
+    private void applyLatestCandidates() {
+        latestCandidates.forEach((groupId, handles) -> {
+            GroupRuntime gr = groups.get(groupId);
+            if (gr != null) {
+                gr.updateCandidates(handles);
+            }
+        });
     }
 
     public void updateCandidates(String groupId, List<PeerHandle> handles) {
+        latestCandidates.put(groupId, List.copyOf(handles));
         GroupRuntime gr = groups.get(groupId);
         if (gr != null) {
-            gr.updateCandidates(handles);
+            gr.updateCandidates(latestCandidates.get(groupId));
         }
     }
 

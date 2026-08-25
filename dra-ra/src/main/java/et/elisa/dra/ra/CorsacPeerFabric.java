@@ -39,7 +39,7 @@ public final class CorsacPeerFabric implements DraRaPort {
     public static final String PRODUCT_NAME = "elisa-nextgen-dra";
     public static final long RELAY_APPLICATION_ID = 0xFFFFFFFFL;
     static final int WORKER_THREADS = 4;
-    static final long LINK_POLL_MILLIS = 500L;
+    static final long LINK_POLL_MILLIS = 100L;
 
     private static final Logger LOG = LogManager.getLogger(CorsacPeerFabric.class);
     private static final java.util.Set<Long> ALL_AUTH_APPLICATION_IDS = allApplicationIds();
@@ -97,7 +97,12 @@ public final class CorsacPeerFabric implements DraRaPort {
             nm.addNetworkListener("dra-ra-ingress", this::onCorsacIngress);
             for (PeerConfig peer : config.peers()) {
                 InetAddress remote = InetAddress.getByName(peer.host());
-                InetAddress local = InetAddress.getByName("0.0.0.0");
+                // Bind CLIENT dials to the remote address when it is loopback so
+                // SCTP INITs advertise a single address — wildcard binds make
+                // kernel multi-homing announce every interface (docker/LAN/wg),
+                // and stray INITs flip server-side link connected-state.
+                InetAddress local = remote.isLoopbackAddress()
+                        ? remote : InetAddress.getByName("0.0.0.0");
                 nm.addLink(peer.id(), remote, peer.port(), local, peer.effectiveListenPort(),
                         peer.isServer(), peer.isSctp(),
                         config.originHost(), config.primaryRealm(),
@@ -169,7 +174,13 @@ public final class CorsacPeerFabric implements DraRaPort {
         if (!request.isRequest()) {
             throw new IllegalArgumentException("sendToPeer requires a request message");
         }
-        PeerConnection conn = registry.requireDeliverable(peerId, request.applicationId());
+        PeerConnection conn;
+        try {
+            conn = registry.requireDeliverable(peerId, request.applicationId());
+        } catch (PeerNotReadyException e) {
+            refreshRegistryBeforeFail(peerId);
+            conn = registry.requireDeliverable(peerId, request.applicationId());
+        }
         if (conn.saturated()) {
             throw new PeerNotReadyException(peerId, "outstanding >= maxOutstanding " + conn.config().maxOutstanding());
         }
@@ -192,7 +203,12 @@ public final class CorsacPeerFabric implements DraRaPort {
         if (answer.isRequest()) {
             throw new IllegalArgumentException("sendAnswerOnLink requires an answer message");
         }
-        registry.requireOpenLink(peerId);
+        try {
+            registry.requireOpenLink(peerId);
+        } catch (PeerNotReadyException e) {
+            refreshRegistryBeforeFail(peerId);
+            registry.requireOpenLink(peerId);
+        }
         DiameterLink link = link(peerId);
         if (link == null || !link.isConnected()) {
             throw new PeerNotReadyException(peerId, "no live transport link");
@@ -224,13 +240,30 @@ public final class CorsacPeerFabric implements DraRaPort {
         }
         IngressListener listener = ingressListener;
         if (listener == null) {
+            LOG.warn("[dra-ra] ingress dropped (no listener) link={}", linkId);
             return;
         }
-        IngressEvent event = CorsacMessageBridge.toIngressEvent(message, linkId, System.nanoTime());
+        IngressEvent event;
+        try {
+            event = CorsacMessageBridge.toIngressEvent(message, linkId, System.nanoTime());
+        } catch (RuntimeException e) {
+            LOG.warn("[dra-ra] ingress bridge failed link={} err={}", linkId, e.toString(), e);
+            return;
+        }
         if (event instanceof IngressAnswer) {
             registry.connection(linkId).ifPresent(PeerConnection::decOutstanding);
         }
-        listener.onIngress(event);
+        LOG.debug("[dra-ra] ingress link={} {} cmd={} hbh={}", linkId,
+                event.getClass().getSimpleName(),
+                event instanceof IngressRequest r ? r.msg().commandCode()
+                        : ((IngressAnswer) event).msg().commandCode(),
+                event instanceof IngressRequest r2 ? r2.msg().hopByHopId()
+                        : ((IngressAnswer) event).msg().hopByHopId());
+        try {
+            listener.onIngress(event);
+        } catch (RuntimeException e) {
+            LOG.warn("[dra-ra] ingress listener failed link={} err={}", linkId, e.toString(), e);
+        }
     }
 
     private void pollLinks() {
@@ -240,29 +273,57 @@ public final class CorsacPeerFabric implements DraRaPort {
         }
         for (PeerConfig peer : config.peers()) {
             try {
-                DiameterLink link = s.getNetworkManager().getLink(peer.id());
-                if (link == null) {
-                    continue;
-                }
-                boolean connected = link.isConnected();
-                boolean open = connected && link.isUp()
-                        && link.getPeerState() == PeerStateEnum.OPEN;
-                if (open && openSeen.putIfAbsent(peer.id(), Boolean.TRUE) == null) {
-                    registry.onChannelUp(peer.id());
-                    registry.onCeaAccepted(peer.id(), capabilitySeed(peer));
-                } else if (open) {
-                    registry.onChannelUp(peer.id());
-                    registry.onCeaRefresh(peer.id());
-                } else if (connected) {
-                    registry.onChannelUp(peer.id());
-                } else {
-                    openSeen.remove(peer.id());
-                    registry.onChannelDown(peer.id());
-                }
+                mirrorLinkState(s, peer);
             } catch (RuntimeException e) {
                 LOG.debug("[dra-ra] link watch error {}", e.toString());
             }
         }
+    }
+
+    private void mirrorLinkState(DiameterStack s, PeerConfig peer) {
+        DiameterLink link = s.getNetworkManager().getLink(peer.id());
+        if (link == null) {
+            return;
+        }
+        boolean connected = link.isConnected();
+        boolean open = connected && link.isUp()
+                && link.getPeerState() == PeerStateEnum.OPEN;
+        if (open && openSeen.putIfAbsent(peer.id(), Boolean.TRUE) == null) {
+            registry.onChannelUp(peer.id());
+            registry.onCeaAccepted(peer.id(), capabilitySeed(peer));
+        } else if (open) {
+            registry.onChannelUp(peer.id());
+            registry.onCeaRefresh(peer.id());
+        } else if (connected) {
+            registry.onChannelUp(peer.id());
+        } else {
+            openSeen.remove(peer.id());
+            registry.onChannelDown(peer.id());
+        }
+    }
+
+    /**
+     * Close the poll-lag race on first traffic after CEA: the link watcher
+     * mirrors corsac state every LINK_POLL_MILLIS, so a request answered
+     * immediately after handshake can hit requireOpenLink before the tick.
+     * Verify against live link truth (channel up + OPEN) and sync the registry
+     * before declaring the peer undeliverable — never bypass peer-truth checks.
+     */
+    private void refreshRegistryBeforeFail(String peerId) {
+        DiameterStack s = stack;
+        if (s == null || !started.get()) {
+            return;
+        }
+        config.peers().stream()
+                .filter(p -> p.id().equals(peerId))
+                .findFirst()
+                .ifPresent(peer -> {
+                    try {
+                        mirrorLinkState(s, peer);
+                    } catch (RuntimeException e) {
+                        LOG.debug("[dra-ra] refresh state error {}", e.toString());
+                    }
+                });
     }
 
     private Set<Integer> capabilitySeed(PeerConfig peer) {
