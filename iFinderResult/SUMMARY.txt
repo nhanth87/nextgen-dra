@@ -23,3 +23,12 @@ Artifacts:
   PA1_discovery.json      DA candidates + coverage report
   PA1_discovery_raw.txt   DA agent transcript
   PA1_vetting.json        VA verdicts + evidence
+
+---
+Post-audit hardening (2026-08-26, same day):
+  DA-PA1-001 FIXED in elisa-dra/src/main/java/et/elisa/dra/app/ra/wire/
+  DiameterWireCodec.java — decode() now gates avpLength >= AVP_HEADER_LENGTH+4
+  whenever FLAG_V is set before reading Vendor-Id (regression tests:
+  DiameterWireCodecTest.vFlaggedAvpShorterThanTwelveBytesIsRejectedWithoutReaderDesync).
+  iFinder DA+VA re-validation PENDING gateway credit top-up
+  ("insufficient user quota" from api.ai-box.vn at re-run attempt 09:38).

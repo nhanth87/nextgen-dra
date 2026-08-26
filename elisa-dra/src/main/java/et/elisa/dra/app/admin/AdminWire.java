@@ -29,7 +29,7 @@ public class AdminWire {
     }
 
     @Produces
-    @ApplicationScoped
+    @jakarta.inject.Singleton
     public PrometheusMeterRegistry prometheusRegistry() {
         return new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
     }
