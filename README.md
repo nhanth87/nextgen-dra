@@ -28,7 +28,7 @@ in two pictures:
   — the same message seen from inside: corsac decode → RA ingress event →
   micro-jainslee SBB dispatch → RelayCore guard chain → tx table → egress.
 
-Status: **IMPLEMENTED — lab-ready** (278 tests green; N-N relay proven over
+Status: **IMPLEMENTED — lab-ready** (291 tests green; N-N relay proven over
 real TCP **and SCTP** sockets; strict micro-jainslee wiring through
 `MicroSleeContainer`). Production capacity numbers are not claimed yet.
 
@@ -38,7 +38,7 @@ real TCP **and SCTP** sockets; strict micro-jainslee wiring through
 
 ```bash
 export JAVA_HOME=$(mise where java@zulu-25)   # JDK 25 only
-mvn clean test                                # full suite (278 tests)
+mvn clean test                                # full suite (291 tests)
 dist-tools/package-dist.sh                    # -> dist/dra (run.sh + configs + html)
 ```
 
@@ -124,9 +124,13 @@ Step by step:
 
 | Endpoint                 | Purpose                                                            |
 | ------------------------ | ------------------------------------------------------------------ |
-| `GET /api/peers`         | per-peer readiness truth + advertised apps                         |
-| `GET/PUT /api/rules`     | validated hot-reload of the routing rule set (last-good rollback)  |
+| `GET /api/peers`         | per-peer readiness truth + advertised apps + admin-drained set     |
+| `POST /api/peers/{id}/{enable,disable}` | real drain: excluded from new forwarding, fail-closed 3002 |
+| `GET/PUT /api/rules`     | validated hot-reload of the routing rule set (last-good rollback); applied sets persist to `route_config` and survive restart |
+| `GET /api/config`        | effective runtime configuration actually wired into the relay plane |
+| `GET /api/bindings?limit=N` | binding store size + most recent entries                        |
 | `GET /api/telemetry`     | counters: tx totals, answer classes, throttle/failover/drop gauges |
+| `GET /metrics`           | Prometheus scrape (`dra_*` business counters + gauges)             |
 | `GET :8086/api/messages` | simulator ring-buffer log (req/ans ground truth)                   |
 
 

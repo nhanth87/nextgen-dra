@@ -27,7 +27,7 @@ không thấy host client gốc. Cả hành trình gói gọn trong hai sơ đ�
   — cùng message nhìn từ bên trong: corsac decode → event RA ingress →
   dispatch SBB micro-jainslee → guard chain RelayCore → tx table → egress.
 
-Trạng thái: **IMPLEMENTED — lab-ready** (278 tests xanh; N-N relay được chứng
+Trạng thái: **IMPLEMENTED — lab-ready** (291 tests xanh; N-N relay được chứng
 minh bằng socket thật cả TCP lẫn SCTP; wiring strict micro-jainslee qua
 `MicroSleeContainer`). Chưa công bố số liệu production capacity.
 
@@ -37,7 +37,7 @@ minh bằng socket thật cả TCP lẫn SCTP; wiring strict micro-jainslee qua
 
 ```bash
 export JAVA_HOME=$(mise where java@zulu-25)   # chỉ JDK 25
-mvn clean test                                # full suite (278 tests)
+mvn clean test                                # full suite (291 tests)
 dist-tools/package-dist.sh                    # -> dist/dra (run.sh + configs + html)
 ```
 
@@ -123,9 +123,13 @@ Từng bước:
 
 | Endpoint                 | Mục đích                                                          |
 | ------------------------ | ----------------------------------------------------------------- |
-| `GET /api/peers`         | readiness truth từng peer + advertised apps                       |
-| `GET/PUT /api/rules`     | hot-reload bộ rules có validate (rollback last-good)              |
+| `GET /api/peers`         | readiness truth từng peer + advertised apps + tập peer bị drain    |
+| `POST /api/peers/{id}/{enable,disable}` | drain thật: loại khỏi forwarding mới, fail-closed 3002 |
+| `GET/PUT /api/rules`     | hot-reload bộ rules có validate (rollback last-good); bộ đã apply persist vào `route_config`, sống qua restart |
+| `GET /api/config`        | cấu hình runtime hiệu lực thực tế đang wire vào relay plane        |
+| `GET /api/bindings?limit=N` | kích thước store binding + các entry mới nhất                   |
 | `GET /api/telemetry`     | counters: tx totals, answer classes, gauge throttle/failover/drop |
+| `GET /metrics`           | Prometheus scrape (`dra_*` business counters + gauges)             |
 | `GET :8086/api/messages` | log ring-buffer simulator (ground truth req/ans)                  |
 
 
