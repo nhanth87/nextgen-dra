@@ -107,6 +107,35 @@ class DiameterWireCodecTest {
                 () -> DiameterWireCodec.decode(java.util.Arrays.copyOf(full, 18)));
     }
 
+    @Test
+    void vFlaggedAvpShorterThanTwelveBytesIsRejectedWithoutReaderDesync() {
+        byte[] header = new byte[20];
+        header[0] = 1;
+        header[1] = 0;
+        header[2] = 0;
+        header[3] = 32;
+        int avpStart = 20;
+        byte[] frame = new byte[36];
+        System.arraycopy(header, 0, frame, 0, header.length);
+        frame[avpStart] = 0;
+        frame[avpStart + 1] = 0;
+        frame[avpStart + 2] = 1;
+        frame[avpStart + 3] = (byte) 0x80;
+        frame[avpStart + 4] = 0;
+        frame[avpStart + 5] = 0;
+        frame[avpStart + 6] = 9;
+        assertThrows(IllegalArgumentException.class, () -> DiameterWireCodec.decode(frame));
+    }
+
+    @Test
+    void vFlaggedAvpWithFullHeaderDecodesVendorAndData() {
+        DiaMsg msg = DiameterWireCodec.decode(DiameterWireCodec.encode(relayRequest()));
+        DiaAvp vendorAvp = find(msg.avps(), 1407);
+        assertNotNull(vendorAvp);
+        assertEquals(10415, vendorAvp.vendorId());
+        assertArrayEquals(new byte[]{0x52, 0x04, 0x01}, vendorAvp.rawBytes());
+    }
+
     private DiaAvp find(List<DiaAvp> avps, int code) {
         return avps.stream().filter(a -> a.code() == code).findFirst().orElse(null);
     }

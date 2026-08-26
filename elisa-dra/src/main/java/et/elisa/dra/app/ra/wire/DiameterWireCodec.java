@@ -90,13 +90,16 @@ public final class DiameterWireCodec {
             int code = in.readInt();
             int avpFlags = in.readUnsignedByte();
             int avpLength = in.readUnsignedMedium();
-            if (avpLength < AVP_HEADER_LENGTH || offset + avpLength > length) {
-                throw new IllegalArgumentException("bad avp length " + avpLength + " for code " + code);
+            boolean vendorFlag = (avpFlags & FLAG_V) != 0;
+            int avpHeaderLen = AVP_HEADER_LENGTH + (vendorFlag ? 4 : 0);
+            if (avpLength < avpHeaderLen || offset + avpLength > length) {
+                throw new IllegalArgumentException("bad avp length " + avpLength
+                        + " for code " + code + (vendorFlag ? " (V-flagged)" : ""));
             }
-            long vendorId = (avpFlags & FLAG_V) != 0 ? in.readUnsignedInt() : 0L;
+            long vendorId = vendorFlag ? in.readUnsignedInt() : 0L;
             boolean mandatory = (avpFlags & FLAG_M) != 0;
-            int dataLength = avpLength - AVP_HEADER_LENGTH - ((avpFlags & FLAG_V) != 0 ? 4 : 0);
-            byte[] data = new byte[Math.max(0, dataLength)];
+            int dataLength = avpLength - avpHeaderLen;
+            byte[] data = new byte[dataLength];
             in.readBytes(data);
             int padding = pad(avpLength) - avpLength;
             if (padding > 0 && offset + avpLength + padding <= length) {
