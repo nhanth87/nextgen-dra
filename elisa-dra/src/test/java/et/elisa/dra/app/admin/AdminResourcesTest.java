@@ -41,6 +41,17 @@ class AdminResourcesTest {
                 Set.of(), "WAITING"));
         AtomicLong bindings = new AtomicLong(42);
         List<String> ops = new java.util.ArrayList<>();
+        TelemetryPort telemetry = new TelemetryPort() {
+            @Override
+            public boolean live() {
+                return true;
+            }
+
+            @Override
+            public Map<String, Long> snapshot() {
+                return Map.of(et.elisa.dra.core.metrics.MetricsNames.TX_TOTAL, 7L);
+            }
+        };
         AdminPort port = new AdminPort() {
             @Override
             public boolean live() {
@@ -68,6 +79,21 @@ class AdminResourcesTest {
                 ops.add("disable:" + peerId);
                 return true;
             }
+
+            @Override
+            public TelemetryPort telemetry() {
+                return telemetry;
+            }
+
+            @Override
+            public List<Map<String, Object>> bindingsSample(int limit) {
+                return List.of(Map.of("key", "IMSI:4520402000000001", "peerId", "hss-a"));
+            }
+
+            @Override
+            public Map<String, Object> runtimeConfig() {
+                return Map.of("originHost", "dra1.elisa.lab", "failoverMaxRetries", 3);
+            }
         };
         PeersResource res = new PeersResource(port);
         Map<String, Object> view = res.peers();
@@ -87,6 +113,12 @@ class AdminResourcesTest {
 
         BindingsResource bindingsRes = new BindingsResource(port);
         assertEquals(42L, bindingsRes.count().get("count"));
+        assertEquals(1, ((List<?>) bindingsRes.list(10).get("entries")).size());
+        assertTrue(bindingsRes.list(0).get("entries") instanceof List<?>);
+
+        ConfigResource config = new ConfigResource(port, new et.elisa.dra.core.cfg.RuleSetHolder());
+        assertEquals("dra1.elisa.lab", config.config().get("originHost"));
+        assertEquals(3, config.config().get("failoverMaxRetries"));
 
         PeersResource noop = new PeersResource();
         assertEquals(Boolean.FALSE, noop.peers().get("live"));
@@ -148,7 +180,38 @@ class AdminResourcesTest {
                 return m;
             }
         };
-        TelemetryResource res = new TelemetryResource(port);
+        AdminPort admin = new AdminPort() {
+            @Override
+            public boolean live() {
+                return true;
+            }
+
+            @Override
+            public TelemetryPort telemetry() {
+                return port;
+            }
+
+            @Override
+            public Map<String, PeerHealth> peersHealth() {
+                return Map.of();
+            }
+
+            @Override
+            public long bindingsCount() {
+                return 0;
+            }
+
+            @Override
+            public boolean enablePeer(String peerId) {
+                return false;
+            }
+
+            @Override
+            public boolean disablePeer(String peerId) {
+                return false;
+            }
+        };
+        TelemetryResource res = new TelemetryResource(admin);
         Map<String, Object> out = res.telemetry();
         assertEquals(Boolean.TRUE, out.get("live"));
         assertEquals(1234L, ((Map<String, Long>) out.get("counters"))
@@ -156,5 +219,23 @@ class AdminResourcesTest {
 
         TelemetryResource noop = new TelemetryResource();
         assertEquals(Boolean.FALSE, noop.telemetry().get("live"));
+    }
+
+    @Test
+    void metricsResourceScrapesPrometheusFormatWithBusinessGauges() {
+        io.micrometer.prometheusmetrics.PrometheusMeterRegistry registry =
+                new io.micrometer.prometheusmetrics.PrometheusMeterRegistry(
+                        io.micrometer.prometheusmetrics.PrometheusConfig.DEFAULT);
+        et.elisa.dra.app.sbbs.relay.SbbMetrics metrics =
+                new et.elisa.dra.app.sbbs.relay.SbbMetrics();
+        metrics.inc(et.elisa.dra.core.metrics.MetricsNames.TX_TOTAL);
+        io.micrometer.core.instrument.FunctionCounter.builder(
+                et.elisa.dra.core.metrics.MetricsNames.TX_TOTAL,
+                metrics.counter(et.elisa.dra.core.metrics.MetricsNames.TX_TOTAL),
+                c -> c.sum()).register(registry);
+        MetricsResource res = new MetricsResource(registry);
+        String body = res.scrape();
+        assertTrue(body.contains("dra_tx_total 1.0"));
+        assertTrue(body.contains("# TYPE"));
     }
 }

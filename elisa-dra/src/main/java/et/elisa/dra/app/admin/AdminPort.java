@@ -2,6 +2,7 @@ package et.elisa.dra.app.admin;
 
 import et.elisa.dra.core.peer.PeerHealth;
 
+import java.util.List;
 import java.util.Map;
 
 public interface AdminPort {
@@ -15,6 +16,21 @@ public interface AdminPort {
     boolean enablePeer(String peerId);
 
     boolean disablePeer(String peerId);
+
+    /** Live relay telemetry (relay-core counters + gauges). Never null. */
+    default TelemetryPort telemetry() {
+        return TelemetryPort.NOOP;
+    }
+
+    /** Most recent binding entries for the dashboard (bounded by limit). */
+    default List<Map<String, Object>> bindingsSample(int limit) {
+        return List.of();
+    }
+
+    /** Effective runtime configuration actually wired into the relay plane. */
+    default Map<String, Object> runtimeConfig() {
+        return Map.of();
+    }
 
     AdminPort NOOP = new AdminPort() {
 
@@ -41,6 +57,21 @@ public interface AdminPort {
         @Override
         public boolean disablePeer(String peerId) {
             return false;
+        }
+
+        @Override
+        public TelemetryPort telemetry() {
+            return TelemetryPort.NOOP;
+        }
+
+        @Override
+        public List<Map<String, Object>> bindingsSample(int limit) {
+            return List.of();
+        }
+
+        @Override
+        public Map<String, Object> runtimeConfig() {
+            return Map.of();
         }
     };
 }

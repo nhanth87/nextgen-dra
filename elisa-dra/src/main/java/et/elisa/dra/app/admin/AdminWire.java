@@ -4,6 +4,8 @@ import et.elisa.dra.core.cfg.RuleSet;
 import et.elisa.dra.core.cfg.RuleSetHolder;
 import et.elisa.dra.core.engine.RuleEngineImpl;
 import io.quarkus.runtime.annotations.RegisterForReflection;
+import io.micrometer.prometheusmetrics.PrometheusConfig;
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 
@@ -28,8 +30,8 @@ public class AdminWire {
 
     @Produces
     @ApplicationScoped
-    public TelemetryPort telemetryPort() {
-        return TelemetryPort.NOOP;
+    public PrometheusMeterRegistry prometheusRegistry() {
+        return new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
     }
 
 }

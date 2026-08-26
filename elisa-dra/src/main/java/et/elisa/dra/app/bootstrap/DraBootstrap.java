@@ -39,15 +39,22 @@ public final class DraBootstrap implements AutoCloseable {
     private final MicroSleeContainer container;
     private final RelayCore core;
     private final DraRaPort raPort;
+    private final io.micrometer.prometheusmetrics.PrometheusMeterRegistry registry;
     private volatile DraRaEndpoint endpoint;
     private volatile TelemetryPort telemetryPort;
     private volatile ScheduledExecutorService sweeper;
     private volatile boolean started;
 
     public DraBootstrap(MicroSleeContainer container, RelayCore core, DraRaPort raPort) {
+        this(container, core, raPort, null);
+    }
+
+    public DraBootstrap(MicroSleeContainer container, RelayCore core, DraRaPort raPort,
+                        io.micrometer.prometheusmetrics.PrometheusMeterRegistry sharedRegistry) {
         this.container = Objects.requireNonNull(container, "container");
         this.core = Objects.requireNonNull(core, "core");
         this.raPort = Objects.requireNonNull(raPort, "raPort");
+        this.registry = sharedRegistry;
     }
 
     public synchronized void init() {
@@ -83,9 +90,10 @@ public final class DraBootstrap implements AutoCloseable {
 
     private void wireTelemetry() {
         try {
-            PrometheusMeterRegistry registry =
-                    new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
-            MicrometerTelemetryPort micrometer = new MicrometerTelemetryPort(registry, container);
+            PrometheusMeterRegistry reg = registry != null
+                    ? registry
+                    : new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
+            MicrometerTelemetryPort micrometer = new MicrometerTelemetryPort(reg, container);
             micrometer.start();
             telemetryPort = micrometer;
             container.getEventRouter().setDispatchObserver(new TelemetryDispatchObserver(micrometer));

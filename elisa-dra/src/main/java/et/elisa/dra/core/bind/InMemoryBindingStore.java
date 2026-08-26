@@ -105,6 +105,17 @@ public final class InMemoryBindingStore implements BindingStore {
         return maxEntries;
     }
 
+    /** Most recently used entries, newest last, bounded by limit. */
+    public List<BindingEntry> entries(int limit) {
+        if (limit <= 0) {
+            return List.of();
+        }
+        synchronized (lru) {
+            int from = Math.max(0, lru.size() - limit);
+            return lru.values().stream().skip(from).toList();
+        }
+    }
+
     public long expiredCount() {
         return expiredTotal.sum();
     }
