@@ -66,8 +66,11 @@ RUNSH
 chmod +x "$OUT/run.sh"
 
 echo "[3/5] html + configs (no operator clobber)"
-if [ -d "$REPO_ROOT/elisa-dra/html" ]; then
-  cp -a "$REPO_ROOT/elisa-dra/html/." "$OUT/html/" 2>/dev/null || true
+# htmx admin hub (source of truth: repo-root/app) -> dist/dra/html
+# NOTE: must NOT collide with fast-jar's own app/ dir (quarkus-app/app holds jars)
+APP_DIR="$REPO_ROOT/app"
+if [ -d "$APP_DIR" ]; then
+  cp -a "$APP_DIR/." "$OUT/html/" 2>/dev/null || true
 fi
 for tpl in "$REPO_ROOT/configs/"*.json "$REPO_ROOT/configs/"*.xml "$REPO_ROOT/configs/"*.sample; do
   [ -e "$tpl" ] || continue

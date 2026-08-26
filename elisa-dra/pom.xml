@@ -51,12 +51,9 @@
     <dependency><groupId>com.microjainslee</groupId><artifactId>jainslee-core</artifactId><version>${microjainslee.version}</version></dependency>
     <dependency><groupId>com.microjainslee</groupId><artifactId>jainslee-api</artifactId><version>${microjainslee.version}</version></dependency>
     <dependency><groupId>com.microjainslee</groupId><artifactId>jainslee-telemetry</artifactId><version>${microjainslee.version}</version></dependency>
-    <dependency><groupId>com.microjainslee</groupId><artifactId>jainslee-admin-spi</artifactId><version>${microjainslee.version}</version></dependency>
-    <dependency><groupId>com.microjainslee</groupId><artifactId>jainslee-monitor</artifactId><version>${microjainslee.version}</version></dependency>
     <dependency><groupId>com.microjainslee</groupId><artifactId>adapter-quarkus</artifactId><version>${microjainslee.version}</version></dependency>
     <dependency><groupId>com.microjainslee</groupId><artifactId>jainslee-apt</artifactId><version>${microjainslee.version}</version><optional>true</optional></dependency>
 
-    <dependency><groupId>com.microjainslee</groupId><artifactId>ra-prometheus-exporter</artifactId><version>${microjainslee.version}</version></dependency>
 
     <dependency><groupId>io.micrometer</groupId><artifactId>micrometer-registry-prometheus</artifactId><version>1.14.0</version></dependency>
 

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Elisa Nextgen DRA — Overview</title>
+<script src="https://unpkg.com/htmx.org@2.0.4"></script>
+<link rel="stylesheet" href="/admin/theme.css"/>
+<script src="/admin/app.js"></script>
+</head>
+<body>
+<header>
+  <h1 class="brand">Elisa <span>Nextgen DRA</span></h1>
+  <span id="live-pill" class="pill bad">…</span>
+</header>
+<nav class="hub">
+  <a href="/admin/index.html">Overview</a>
+  <a href="/admin/rules.html">Routing Rules</a>
+  <a href="/admin/telemetry.html">Telemetry</a>
+  <a href="/admin/bindings.html">Bindings</a>
+  <a href="/admin/config.html">Config</a>
+  <a class="plain" href="/metrics">Prometheus /metrics</a>
+</nav>
+<main>
+  <div class="grid3" id="kpis"
+       hx-get="/admin/panel/kpis" hx-trigger="load, every 3s" hx-swap="innerHTML">
+    <div class="card kpi"><small>loading…</small><b>–</b></div>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <div class="card">
+        <h2>Peers — truth = channel up + CEA 2001 + watchdog valid (5s)</h2>
+        <div id="peers-panel"
+             hx-get="/admin/panel/peers" hx-trigger="load, every 5s" hx-swap="innerHTML">
+          <span class="muted">loading…</span>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Relay counters (3s)</h2>
+        <div hx-get="/admin/panel/telemetry" hx-trigger="load, every 3s"
+             hx-swap="innerHTML"><span class="muted">loading…</span></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h2>Identity &amp; routing summary (/api/config · 10s)</h2>
+        <div hx-get="/admin/panel/config" hx-trigger="load, every 10s"
+             hx-swap="innerHTML"><span class="muted">loading…</span></div>
+      </div>
+      <div class="card">
+        <h2>Recent bindings</h2>
+        <div hx-get="/admin/panel/bindings?limit=6" hx-trigger="load, every 3s"
+             hx-swap="innerHTML"><span class="muted">loading…</span></div>
+      </div>
+    </div>
+  </div>
+</main>
+<footer>Peer truth law: LISTEN ≠ ready. Fail-closed DIAMETER_UNABLE_TO_DELIVER (3002) — never a silent drop.</footer>
+</body>
+</html>

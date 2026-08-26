@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Elisa Nextgen DRA — Diameter Routing Rules</title>
+<script src="https://unpkg.com/htmx.org@2.0.4"></script>
+<link rel="stylesheet" href="/admin/theme.css"/>
+<script src="/admin/app.js"></script>
+</head>
+<body>
+<header>
+  <h1 class="brand">Elisa <span>Nextgen DRA</span></h1>
+  <span id="live-pill" class="pill bad">…</span>
+</header>
+<nav class="hub">
+  <a href="/admin/index.html">Overview</a>
+  <a href="/admin/rules.html">Routing Rules</a>
+  <a href="/admin/telemetry.html">Telemetry</a>
+  <a href="/admin/bindings.html">Bindings</a>
+  <a href="/admin/config.html">Config</a>
+  <a class="plain" href="/metrics">Prometheus /metrics</a>
+</nav>
+<main>
+  <div class="card">
+    <h2>Active rule set — GET/PUT /api/rules · applied sets persist to route_config SoT and survive restart</h2>
+    <div id="rules-main"
+         hx-get="/admin/panel/rules" hx-trigger="load, every 8s" hx-swap="innerHTML">
+      <span class="muted">loading…</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Raw candidate editor — validated before apply, last-good rollback on error</h2>
+    <div id="editor-slot"
+         hx-get="/admin/panel/rules/raw" hx-trigger="load" hx-swap="innerHTML">
+      <span class="muted">loading editor…</span>
+    </div>
+    <form style="margin-top:.7rem;"
+          hx-post="/admin/panel/rules/apply"
+          hx-target="#apply-result" hx-swap="innerHTML"
+          hx-include="#editor-slot textarea">
+      <button class="primary" type="submit">Apply rule set</button>
+      <button type="button" hx-get="/admin/panel/rules/raw"
+              hx-target="#editor-slot" hx-swap="innerHTML">Reload current JSON</button>
+    </form>
+    <div id="apply-result" class="notice"></div>
+  </div>
+</main>
+<footer>Matchers: and · or · not · app · cmd · realm · host · avp(EQ/PREFIX/CONTAINS/IN_LIST/IP_IN_CIDR) · plmnFrom · drmpAtLeast · ingressPeerIn · flag · always. Actions: forward(+sticky/th/hairpin) · reject(resultCode, reason) · redirect(host|realm).</footer>
+</body>
+</html>

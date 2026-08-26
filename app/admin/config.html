@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Elisa Nextgen DRA — Effective Configuration</title>
+<script src="https://unpkg.com/htmx.org@2.0.4"></script>
+<link rel="stylesheet" href="/admin/theme.css"/>
+<script src="/admin/app.js"></script>
+</head>
+<body>
+<header>
+  <h1 class="brand">Elisa <span>Nextgen DRA</span></h1>
+  <span id="live-pill" class="pill bad">…</span>
+</header>
+<nav class="hub">
+  <a href="/admin/index.html">Overview</a>
+  <a href="/admin/rules.html">Routing Rules</a>
+  <a href="/admin/telemetry.html">Telemetry</a>
+  <a href="/admin/bindings.html">Bindings</a>
+  <a href="/admin/config.html">Config</a>
+  <a class="plain" href="/metrics">Prometheus /metrics</a>
+</nav>
+<main>
+  <div class="card">
+    <h2>Effective runtime configuration — the values actually wired into the relay plane (10s)</h2>
+    <div hx-get="/admin/panel/config" hx-trigger="load, every 10s"
+         hx-swap="innerHTML"><span class="muted">loading…</span></div>
+  </div>
+</main>
+<footer>Knobs live in application.properties (dra.overload.*, dra.th.*, dra.tx.*, dra.relay.*, dra.bindings.*) and configs/dra-peers.json + configs/dra-screening.json. Operator-owned copies under dist are never clobbered by packaging.</footer>
+</body>
+</html>

@@ -1,0 +1,68 @@
+/* Elisa Nextgen DRA — admin theme (derived from gmlc-microjainslee admin) */
+:root { --ink:#1a2332; --accent:#0b6e4f; --accent2:#0b6e4f22; --line:#c5d0de;
+        --ok:#0b6e4f; --bad:#b91c1c; --warn:#b45309; --mute:#64748b; --panel:rgba(255,255,255,.55); }
+* { box-sizing:border-box; }
+body { margin:0; font-family:"IBM Plex Sans","Segoe UI",sans-serif;
+  background:linear-gradient(165deg,#dfe8f2 0%,#f4f7fb 40%,#e6edf5 100%);
+  color:var(--ink); min-height:100vh; }
+header { padding:2.5rem 1.5rem 1rem; max-width:1100px; margin:0 auto; display:flex;
+         align-items:baseline; gap:1rem; flex-wrap:wrap; }
+.brand { font-family:"IBM Plex Serif",Georgia,serif; font-size:2.4rem;
+         letter-spacing:-.02em; margin:0; }
+.brand span { color:var(--accent); }
+.pill { display:inline-block; padding:.15rem .7rem; border-radius:999px; font-size:.75rem;
+        font-weight:600; border:1px solid var(--line); color:var(--mute); }
+.pill.ok   { color:var(--ok);   border-color:var(--ok); background:var(--accent2); }
+.pill.bad  { color:var(--bad);  border-color:var(--bad); }
+.pill.warn { color:var(--warn); border-color:var(--warn); }
+nav.hub { max-width:1100px; margin:.8rem auto 0; padding:0 1.5rem; display:flex;
+          gap:.75rem; flex-wrap:wrap; }
+nav.hub a { background:transparent; border:1px solid var(--line); padding:.45rem .9rem;
+            border-radius:2px; color:var(--ink); text-decoration:none; font-size:.93rem; }
+nav.hub a:hover { border-color:var(--accent); color:var(--accent); }
+nav.hub a.active { border-color:var(--accent); color:var(--accent); font-weight:600;
+                   background:var(--accent2); }
+main { max-width:1100px; margin:0 auto; padding:1.1rem 1.5rem 3rem; }
+.card { background:var(--panel); border:1px solid var(--line); padding:1.05rem 1.15rem;
+        margin-bottom:1rem; }
+.card h2 { font-size:.78rem; text-transform:uppercase; letter-spacing:.09em;
+           color:var(--mute); margin:0 0 .7rem; font-weight:600; }
+.grid2 { display:grid; grid-template-columns:1fr 380px; gap:1rem; align-items:start; }
+.grid3 { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:1rem; }
+table { width:100%; border-collapse:collapse; font-size:.92rem; }
+th,td { text-align:left; padding:.42rem .55rem; border-bottom:1px solid var(--line);
+        white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:280px; }
+th { color:var(--mute); font-weight:600; font-size:.82rem; text-transform:uppercase;
+     letter-spacing:.04em; }
+tr:last-child td { border-bottom:none; }
+.kv { display:flex; justify-content:space-between; gap:.8rem; padding:.18rem 0; font-size:.9rem; }
+.kv b { font-variant-numeric:tabular-nums; text-align:right; word-break:break-all; }
+.muted { color:var(--mute); }
+.mono { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.85rem; }
+button { background:#fff; color:var(--ink); border:1px solid var(--line); border-radius:2px;
+         padding:.32rem .8rem; cursor:pointer; font-size:.85rem; }
+button:hover { border-color:var(--accent); color:var(--accent); }
+button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+button.primary:hover { filter:brightness(1.08); color:#fff; }
+textarea { width:100%; min-height:300px; background:#fbfdff; color:var(--ink);
+           border:1px solid var(--line); border-radius:4px; padding:.7rem; resize:vertical;
+           font:12px/1.5 ui-monospace,Menlo,monospace; }
+input[type=text], input[type=search] { border:1px solid var(--line); border-radius:2px;
+        padding:.35rem .6rem; font-size:.9rem; background:#fff; color:var(--ink); }
+.notice { color:var(--accent); font-weight:500; white-space:pre-wrap;
+          font:12px ui-monospace,Menlo,monospace; margin-top:.6rem; }
+.sec { margin-top:.55rem; padding-top:.5rem; border-top:1px dashed var(--line); }
+a.plain { color:var(--mute); font-size:.85rem; }
+.rule-flow { display:flex; align-items:center; gap:.45rem; flex-wrap:wrap; font-size:.86rem; }
+.chip { border:1px solid var(--line); border-radius:999px; padding:.06rem .6rem;
+        background:#fff; font-size:.8rem; }
+.chip.match { border-color:var(--accent); color:var(--accent); }
+.chip.act   { border-color:var(--warn); color:var(--warn); }
+.arrow { color:var(--mute); }
+.kpi { text-align:left; }
+.kpi b { display:block; font-size:1.65rem; font-variant-numeric:tabular-nums;
+         letter-spacing:-.02em; }
+.kpi small { color:var(--mute); text-transform:uppercase; font-size:.68rem;
+             letter-spacing:.08em; }
+footer { max-width:1100px; margin:0 auto; padding:0 1.5rem 2rem; color:var(--mute);
+         font-size:.8rem; }
