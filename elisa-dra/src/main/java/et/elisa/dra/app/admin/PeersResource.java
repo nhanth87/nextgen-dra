@@ -33,6 +33,7 @@ public class PeersResource {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("live", port.live());
         out.put("peers", port.peersHealth());
+        out.put("disabled", port.disabledPeers());
         return out;
     }
 

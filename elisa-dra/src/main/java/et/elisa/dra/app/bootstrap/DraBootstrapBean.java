@@ -117,6 +117,20 @@ public class DraBootstrapBean implements AdminPort {
 
     private volatile ScreeningServiceImpl screenerRef;
 
+    private final Set<String> adminDisabled = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    @Inject
+    et.elisa.dra.app.persist.DurableBindings durableBindings;
+
+    @Inject
+    jakarta.enterprise.inject.Instance<et.elisa.dra.app.persist.AuditRecorder> auditRecorders;
+
+    private volatile et.elisa.dra.app.persist.AuditRecorder auditRecorderRef;
+
+    @org.eclipse.microprofile.config.inject.ConfigProperty(
+            name = "dra.bindings.ttl-default-seconds", defaultValue = "86400")
+    long bindingsTtlDefaultSeconds;
+
     private volatile DraBootstrap bootstrap;
     private volatile DraRaPort raPort;
     private volatile DiameterRaConfig activeConfig;
@@ -130,6 +144,7 @@ public class DraBootstrapBean implements AdminPort {
 
     void onStart(@Observes StartupEvent ev) {
         LOG.info("DRA bootstrap triggered by StartupEvent");
+        auditRecorderRef = auditRecorders.isResolvable() ? auditRecorders.get() : null;
         init();
     }
 
@@ -142,7 +157,7 @@ public class DraBootstrapBean implements AdminPort {
         raPort = createFabric(config);
         syncCandidates(config);
 
-        BindingStore store = new InMemoryBindingStore();
+        BindingStore store = durableBindings.store();
         bindings = store;
         var overload = new OverloadGateImpl(new OlrCache(), new LoadCache(),
                 new AdmissionController(overloadGlobalRate, overloadGlobalBurst,
@@ -212,6 +227,9 @@ public class DraBootstrapBean implements AdminPort {
         var health = raPort.peersHealth();
         var byGroup = new java.util.HashMap<String, List<PeerHandle>>();
         for (PeerConfig peer : config.peers()) {
+            if (adminDisabled.contains(peer.id())) {
+                continue;
+            }
             var h = health.get(peer.id());
             boolean up = h != null && h.ready();
             byGroup.computeIfAbsent(peer.group(), g -> new java.util.ArrayList<>())
@@ -388,25 +406,7 @@ public class DraBootstrapBean implements AdminPort {
 
     @Override
     public java.util.List<java.util.Map<String, Object>> bindingsSample(int limit) {
-        BindingStore s = bindings;
-        if (!(s instanceof InMemoryBindingStore mem) || limit <= 0) {
-            return java.util.List.of();
-        }
-        java.time.Instant now = java.time.Instant.now();
-        return mem.entries(limit).stream()
-                .map(e -> {
-                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<String, Object>();
-                    m.put("key", e.key());
-                    m.put("groupId", e.groupId());
-                    m.put("peerId", e.peerId());
-                    m.put("originHost", e.originHost());
-                    m.put("ingressPeerId", e.ingressPeerId());
-                    m.put("createdAt", e.createdAt() == null ? null : e.createdAt().toString());
-                    m.put("expiresAt", e.expiresAt() == null ? null : e.expiresAt().toString());
-                    m.put("expired", e.expiredAt(now));
-                    return m;
-                })
-                .toList();
+        return durableBindings.sample(limit);
     }
 
     @Override
@@ -448,16 +448,9 @@ public class DraBootstrapBean implements AdminPort {
                 "pseudoCount", thPseudoCount,
                 "fullEdge", thFullEdge));
         out.put("screening", screeningSummary());
-        long ttlDefault = 86_400;
-        try {
-            ttlDefault = Long.parseLong(System.getProperty("dra.bindings.ttl-default-seconds",
-                    System.getenv().getOrDefault("DRA_BINDINGS_TTL_DEFAULT_SECONDS", "86400")));
-        } catch (NumberFormatException ignored) {
-            // keep default
-        }
         out.put("bindings", Map.of(
-                "store", bindings instanceof ClusteredBindingStore ? "clustered" : "in-memory",
-                "ttlDefaultSeconds", ttlDefault));
+                "store", durableBindings.durable() ? "durable(write-behind)" : "in-memory",
+                "ttlDefaultSeconds", bindingsTtlDefaultSeconds));
         return out;
     }
 
@@ -473,11 +466,60 @@ public class DraBootstrapBean implements AdminPort {
 
     @Override
     public boolean enablePeer(String peerId) {
-        return false;
+        if (!isKnownPeer(peerId)) {
+            return false;
+        }
+        if (adminDisabled.remove(peerId)) {
+            refreshCandidatesSoon();
+            auditPeerOp("peer.enable", peerId);
+        }
+        return true;
     }
 
     @Override
     public boolean disablePeer(String peerId) {
-        return false;
+        if (!isKnownPeer(peerId)) {
+            return false;
+        }
+        if (adminDisabled.add(peerId)) {
+            refreshCandidatesSoon();
+            auditPeerOp("peer.disable", peerId);
+        }
+        return true;
+    }
+
+    @Override
+    public Set<String> disabledPeers() {
+        return Set.copyOf(adminDisabled);
+    }
+
+    private boolean isKnownPeer(String peerId) {
+        DiameterRaConfig config = activeConfig;
+        if (config == null || peerId == null) {
+            return false;
+        }
+        return config.peers().stream().anyMatch(p -> p.id().equals(peerId));
+    }
+
+    private void refreshCandidatesSoon() {
+        DiameterRaConfig config = activeConfig;
+        if (config != null && raPort != null) {
+            try {
+                syncCandidates(config);
+            } catch (RuntimeException e) {
+                LOG.debug("[dra-bean] candidate refresh after peer op skipped: {}", e.toString());
+            }
+        }
+    }
+
+    private void auditPeerOp(String action, String peerId) {
+        try {
+            et.elisa.dra.app.persist.AuditRecorder recorder = auditRecorderRef;
+            if (recorder != null) {
+                recorder.record("admin", action, "{\"peer\":\"" + peerId + "\"}");
+            }
+        } catch (RuntimeException ignored) {
+            // never let audit failures affect the control path
+        }
     }
 }

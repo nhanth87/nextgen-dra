@@ -32,6 +32,11 @@ public interface AdminPort {
         return Map.of();
     }
 
+    /** Peer ids administratively drained (excluded from new forwarding). */
+    default java.util.Set<String> disabledPeers() {
+        return java.util.Set.of();
+    }
+
     AdminPort NOOP = new AdminPort() {
 
         @Override

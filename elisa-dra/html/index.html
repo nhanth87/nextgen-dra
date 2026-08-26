@@ -111,15 +111,16 @@ async function refreshPeers() {
         (data.live ? 'no peers registered' : 'RA not attached') + '</td></tr>';
       return;
     }
+    const disabled = new Set(data.disabled || []);
     rows.innerHTML = ids.map(function(id) {
       const p = data.peers[id];
       const ready = p.channelUp && p.ceaOk && p.watchdogValid;
-      const adminOff = p.adminDisabled === true;
+      const off = disabled.has(id);
       return '<tr>' +
         '<td>' + id + '</td>' +
         '<td>' + (p.state || '?') + '</td>' +
         '<td>' + pill(ready, 'READY', 'NOT READY') + '</td>' +
-        '<td>' + (adminOff ? pill(false, '', 'DRAINING') : pill(true, 'ACTIVE', '')) + '</td>' +
+        '<td>' + (off ? pill(false, '', 'DRAINING') : pill(true, 'ACTIVE', '')) + '</td>' +
         '<td>' + p.outstanding + '</td>' +
         '<td class="muted">' + Object.keys(p.advertisedApps || {}).length + '</td>' +
         '<td><button onclick="peerOp(\'' + id + '\',\'disable\')">disable</button> ' +
