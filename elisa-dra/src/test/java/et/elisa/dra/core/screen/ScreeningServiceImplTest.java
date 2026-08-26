@@ -155,4 +155,28 @@ class ScreeningServiceImplTest {
         assertEquals(rules, config.forPeer("p"));
         assertEquals(ScreeningConfig.PeeringRules.ALLOW_ALL, config.forPeer("missing"));
     }
+
+    @Test
+    void failClosedRejectsUnknownPeerWhenRejectUnknownSet() {
+        ScreeningServiceImpl screener = new ScreeningServiceImpl(
+                new ScreeningConfig(Map.of("mme-01", mvnoRules()), true));
+        DiaMsg ulr = request(S6A, 316, "epc.mnc01.mcc452.3gppnetwork.org", List.of());
+        assertEquals(java.util.Optional.of(3002), screener.ingressCheck(ulr, "stranger"));
+        assertEquals(1, screener.unknownPeerRejectCount());
+        assertTrue(screener.ingressCheck(ulr, "mme-01").isEmpty(),
+                "provisioned peer still passes");
+        assertEquals(java.util.Optional.of(3002),
+                screener.ingressCheck(ulr, "another-stranger"),
+                "every unlisted peer is rejected while the gate is on");
+        assertEquals(2, screener.unknownPeerRejectCount());
+    }
+
+    @Test
+    void legacyConstructorKeepsAllowUnknownBehaviour() {
+        ScreeningServiceImpl screener = new ScreeningServiceImpl(
+                ScreeningConfig.of(Map.of()));
+        DiaMsg ulr = request(S6A, 316, "epc.mnc01.mcc452.3gppnetwork.org", List.of());
+        assertTrue(screener.ingressCheck(ulr, "anyone").isEmpty());
+        assertFalse(screener.config().rejectUnknown());
+    }
 }

@@ -40,21 +40,29 @@ public final class DraBootstrap implements AutoCloseable {
     private final RelayCore core;
     private final DraRaPort raPort;
     private final io.micrometer.prometheusmetrics.PrometheusMeterRegistry registry;
+    private final long sweepPeriodMillis;
     private volatile DraRaEndpoint endpoint;
     private volatile TelemetryPort telemetryPort;
     private volatile ScheduledExecutorService sweeper;
     private volatile boolean started;
 
     public DraBootstrap(MicroSleeContainer container, RelayCore core, DraRaPort raPort) {
-        this(container, core, raPort, null);
+        this(container, core, raPort, null, SWEEP_PERIOD_MILLIS);
     }
 
     public DraBootstrap(MicroSleeContainer container, RelayCore core, DraRaPort raPort,
                         io.micrometer.prometheusmetrics.PrometheusMeterRegistry sharedRegistry) {
+        this(container, core, raPort, sharedRegistry, SWEEP_PERIOD_MILLIS);
+    }
+
+    public DraBootstrap(MicroSleeContainer container, RelayCore core, DraRaPort raPort,
+                        io.micrometer.prometheusmetrics.PrometheusMeterRegistry sharedRegistry,
+                        long sweepPeriodMillis) {
         this.container = Objects.requireNonNull(container, "container");
         this.core = Objects.requireNonNull(core, "core");
         this.raPort = Objects.requireNonNull(raPort, "raPort");
         this.registry = sharedRegistry;
+        this.sweepPeriodMillis = sweepPeriodMillis > 0 ? sweepPeriodMillis : SWEEP_PERIOD_MILLIS;
     }
 
     public synchronized void init() {
@@ -132,7 +140,7 @@ public final class DraBootstrap implements AutoCloseable {
             } catch (RuntimeException e) {
                 LOG.debug("[dra-bootstrap] sweep error {}", e.toString());
             }
-        }, SWEEP_PERIOD_MILLIS, SWEEP_PERIOD_MILLIS, TimeUnit.MILLISECONDS);
+        }, sweepPeriodMillis, sweepPeriodMillis, TimeUnit.MILLISECONDS);
     }
 
     @Override

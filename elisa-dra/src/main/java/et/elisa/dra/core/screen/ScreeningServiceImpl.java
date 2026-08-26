@@ -17,13 +17,22 @@ public final class ScreeningServiceImpl implements Screener {
     private final LongAdder cmdRejected = new LongAdder();
     private final LongAdder realmRejected = new LongAdder();
     private final LongAdder foreignProxyState = new LongAdder();
+    private final LongAdder unknownPeerRejected = new LongAdder();
 
     public ScreeningServiceImpl(ScreeningConfig config) {
         this.config = config;
     }
 
+    public ScreeningConfig config() {
+        return config;
+    }
+
     @Override
     public Optional<Integer> ingressCheck(DiaMsg msg, String ingressPeerId) {
+        if (config.rejectUnknown() && !config.known(ingressPeerId)) {
+            unknownPeerRejected.increment();
+            return Optional.of(DraResultCodes.UNABLE_TO_DELIVER);
+        }
         ScreeningConfig.PeeringRules rules = config.forPeer(ingressPeerId);
         if (!rules.appIds().isEmpty() && !rules.appIds().contains(msg.applicationId())) {
             appRejected.increment();
@@ -75,6 +84,10 @@ public final class ScreeningServiceImpl implements Screener {
 
     public long foreignProxyStateCount() {
         return foreignProxyState.sum();
+    }
+
+    public long unknownPeerRejectCount() {
+        return unknownPeerRejected.sum();
     }
 
     static boolean matchesAnyRealmSuffix(String originRealm, java.util.Set<String> suffixes) {

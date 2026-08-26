@@ -47,6 +47,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Quarkus CDI entry (integrator-owned). Wires the strict micro-jainslee
@@ -68,6 +69,53 @@ public class DraBootstrapBean implements AdminPort {
 
     @Inject
     io.micrometer.prometheusmetrics.PrometheusMeterRegistry prometheusRegistry;
+
+    // ── Effective knobs (application.properties → real relay plane) ──
+
+    @org.eclipse.microprofile.config.inject.ConfigProperty(name = "dra.overload.global-rate-per-sec",
+            defaultValue = "50000")
+    double overloadGlobalRate;
+
+    @org.eclipse.microprofile.config.inject.ConfigProperty(name = "dra.overload.global-burst",
+            defaultValue = "5000")
+    double overloadGlobalBurst;
+
+    @org.eclipse.microprofile.config.inject.ConfigProperty(name = "dra.overload.peer-rate-per-sec",
+            defaultValue = "5000")
+    double overloadPeerRate;
+
+    @org.eclipse.microprofile.config.inject.ConfigProperty(name = "dra.overload.peer-burst",
+            defaultValue = "500")
+    double overloadPeerBurst;
+
+    @org.eclipse.microprofile.config.inject.ConfigProperty(name = "dra.th.pseudo-prefix",
+            defaultValue = "dra-edge")
+    String thPseudoPrefix;
+
+    @org.eclipse.microprofile.config.inject.ConfigProperty(name = "dra.th.pseudo-count",
+            defaultValue = "4")
+    int thPseudoCount;
+
+    @org.eclipse.microprofile.config.inject.ConfigProperty(name = "dra.th.full-edge",
+            defaultValue = "false")
+    boolean thFullEdge;
+
+    @org.eclipse.microprofile.config.inject.ConfigProperty(name = "dra.tx.timeout-millis")
+    java.util.Optional<Long> txTimeoutMillis;
+
+    @org.eclipse.microprofile.config.inject.ConfigProperty(name = "dra.relay.max-retries",
+            defaultValue = "3")
+    int relayMaxRetries;
+
+    @org.eclipse.microprofile.config.inject.ConfigProperty(name = "dra.relay.sweep-period-millis",
+            defaultValue = "250")
+    long relaySweepPeriodMillis;
+
+    @org.eclipse.microprofile.config.inject.ConfigProperty(name = "dra.screening.reject-unknown",
+            defaultValue = "true")
+    boolean screeningRejectUnknown;
+
+    private volatile ScreeningServiceImpl screenerRef;
 
     private volatile DraBootstrap bootstrap;
     private volatile DraRaPort raPort;
@@ -97,22 +145,30 @@ public class DraBootstrapBean implements AdminPort {
         BindingStore store = new InMemoryBindingStore();
         bindings = store;
         var overload = new OverloadGateImpl(new OlrCache(), new LoadCache(),
-                new AdmissionController(50_000, 5_000, 5_000, 500));
-        var screener = new ScreeningServiceImpl(new ScreeningConfig(java.util.Map.of()));
+                new AdmissionController(overloadGlobalRate, overloadGlobalBurst,
+                        overloadPeerRate, overloadPeerBurst));
+        ScreeningConfig screeningCfg = effectiveScreeningConfig(config);
+        var screener = new ScreeningServiceImpl(screeningCfg);
+        screenerRef = screener;
         String suffix = config.primaryRealm();
         var thider = new TopologyHiderImpl(new PseudoHostMapper(
-                new ThConfig(suffix, "dra-edge", 4, false, java.util.Set.of())),
+                new ThConfig(suffix, thPseudoPrefix, thPseudoCount, thFullEdge,
+                        java.util.Set.of())),
                 config.originHost());
-        failoverMaxRetries = DEFAULT_MAX_RETRIES;
+        failoverMaxRetries = relayMaxRetries > 0 ? relayMaxRetries : DEFAULT_MAX_RETRIES;
+        long twMillis = txTimeoutMillis.orElse(
+                config.twTimeoutMillis() > 0 ? config.twTimeoutMillis()
+                        : DiameterRaConfig.DEFAULT_TW_MILLIS);
         RelayCore core = new RelayCore(engine, new DefaultTxTable(),
                 new HbhAllocator(), raPort, bindings,
                 new ServerInitiatedResolverImpl(bindings), overload, screener, thider,
                 candidatesFrom(engine),
-                config.originHost(), config.primaryRealm(), config.twTimeoutMillis(),
+                config.originHost(), config.primaryRealm(), twMillis,
                 failoverMaxRetries);
 
         bindBusinessGauges(core);
-        bootstrap = new DraBootstrap(container, core, raPort, registry());
+        bootstrap = new DraBootstrap(container, core, raPort, registry(),
+                relaySweepPeriodMillis);
         bootstrap.init();
         if (raPort instanceof SimulatedPeerFabric sim) {
             sim.setIngressListener(bootstrap.endpoint()::onRaIngress);
@@ -166,6 +222,28 @@ public class DraBootstrapBean implements AdminPort {
                 impl.updateCandidates(group, handles);
             }
         });
+    }
+
+    /**
+     * Screening truth: configs/dra-screening.json wins; when the file is absent
+     * the fail-closed property alone decides whether unknown peers are rejected.
+     */
+    private ScreeningConfig effectiveScreeningConfig(DiameterRaConfig config) {
+        ScreeningConfig fromFile = et.elisa.dra.app.ra.cfg.ScreeningConfigJson.load();
+        if (fromFile != null) {
+            return fromFile;
+        }
+        if (!screeningRejectUnknown) {
+            return new ScreeningConfig(java.util.Map.of(), false);
+        }
+        // Fail-closed with no allowlist file: trust only the provisioned peer set.
+        Map<String, ScreeningConfig.PeeringRules> known = new java.util.HashMap<>();
+        for (PeerConfig p : config.peers()) {
+            known.put(p.id(), new ScreeningConfig.PeeringRules(
+                    Set.copyOf(p.advertisedApps()), Set.of(),
+                    Set.of(config.primaryRealm()), Set.of(), false));
+        }
+        return new ScreeningConfig(Map.copyOf(known), true);
     }
 
     private DraRaPort createFabric(DiameterRaConfig config) {
@@ -344,7 +422,7 @@ public class DraBootstrapBean implements AdminPort {
         out.put("watchdogMillis", config.watchdogIntervalMillis());
         out.put("twTimeoutMillis", config.twTimeoutMillis());
         out.put("failoverMaxRetries", failoverMaxRetries);
-        out.put("txSweepPeriodMillis", 250);
+        out.put("txSweepPeriodMillis", relaySweepPeriodMillis);
         java.util.List<java.util.Map<String, Object>> peers = new java.util.ArrayList<>();
         for (PeerConfig p : config.peers()) {
             java.util.Map<String, Object> pm = new java.util.LinkedHashMap<String, Object>();
@@ -359,20 +437,38 @@ public class DraBootstrapBean implements AdminPort {
             peers.add(pm);
         }
         out.put("peers", peers);
-        out.put("overload", java.util.Map.of(
-                "globalRatePerSec", 50_000,
-                "peerRatePerSec", 5_000));
-        out.put("topologyHiding", java.util.Map.of(
+        out.put("overload", Map.of(
+                "globalRatePerSec", (long) overloadGlobalRate,
+                "globalBurst", (long) overloadGlobalBurst,
+                "peerRatePerSec", (long) overloadPeerRate,
+                "peerBurst", (long) overloadPeerBurst));
+        out.put("topologyHiding", Map.of(
                 "internalSuffix", config.primaryRealm(),
-                "pseudoPrefix", "dra-edge",
-                "pseudoCount", 4,
-                "fullEdge", false));
-        out.put("screening", java.util.Map.of(
-                "mode", "ALLOW_ALL"));
-        out.put("bindings", java.util.Map.of(
+                "pseudoPrefix", thPseudoPrefix,
+                "pseudoCount", thPseudoCount,
+                "fullEdge", thFullEdge));
+        out.put("screening", screeningSummary());
+        long ttlDefault = 86_400;
+        try {
+            ttlDefault = Long.parseLong(System.getProperty("dra.bindings.ttl-default-seconds",
+                    System.getenv().getOrDefault("DRA_BINDINGS_TTL_DEFAULT_SECONDS", "86400")));
+        } catch (NumberFormatException ignored) {
+            // keep default
+        }
+        out.put("bindings", Map.of(
                 "store", bindings instanceof ClusteredBindingStore ? "clustered" : "in-memory",
-                "ttlDefaultSeconds", 86_400));
+                "ttlDefaultSeconds", ttlDefault));
         return out;
+    }
+
+    private Map<String, Object> screeningSummary() {
+        if (screenerRef == null) {
+            return Map.of("mode", "UNKNOWN");
+        }
+        var cfg = screenerRef.config();
+        return Map.of(
+                "mode", cfg.rejectUnknown() ? "FAIL_CLOSED" : "ALLOW_UNKNOWN",
+                "peeringRules", cfg.peerings().size());
     }
 
     @Override

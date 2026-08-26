@@ -34,3 +34,12 @@ dra.th.pseudo-prefix=dra-edge
 dra.th.pseudo-count=4
 dra.th.full-edge=false
 dra.th.groups=
+
+# ── Relay plane knobs (wired into DraBootstrapBean) ──────────────────────
+dra.overload.global-burst=5000
+dra.overload.peer-burst=500
+dra.relay.max-retries=3
+dra.relay.sweep-period-millis=250
+# Fail-closed screening: unknown peering (not in dra-screening.json) is rejected
+# with DIAMETER_UNABLE_TO_DELIVER. Allowlist lives in configs/dra-screening.json.
+dra.screening.reject-unknown=true

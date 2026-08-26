@@ -1,0 +1,8 @@
+{
+  "defaultAction": "REJECT",
+  "peerings": {
+    "mme-acc": { "apps": [16777251], "realmSuffixes": ["epc.mnc01.mcc452.3gppnetwork.org"],
+                 "ipPrefixes": ["127.0.0.0/8", "10.0.0.0/8"], "trustedNoProxy": true },
+    "hss-a":    { "apps": [16777251], "realmSuffixes": ["epc.mnc01.mcc452.3gppnetwork.org"] }
+  }
+}
